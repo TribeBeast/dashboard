@@ -14,13 +14,13 @@
     --line: rgba(255,255,255,0.09);
     --text: #EDEBF7;
     --text-dim: #9296B8;
-    --c-apps: #E13A46;
-    --c-social: #E55581;
-    --c-projects: #DE4824;
-    --c-other: #EAA978;
-    --you-core: #EF7D85;
-    --you-glow: #F2C2C6;
-    --you-shadow: #99111B;
+    --c-apps: #2ECC71;
+    --c-social: #27AE60;
+    --c-projects: #3CB371;
+    --c-other: #66BB6A;
+    --you-core: #6EE7A8;
+    --you-glow: #B8F5D0;
+    --you-shadow: #1B8A4C;
   }
   *{ box-sizing: border-box; }
   html{
@@ -522,7 +522,7 @@
     </div>
     <div class="field">
       <label for="f-color">Color</label>
-      <input id="f-color" type="color" value="#E13A46">
+      <input id="f-color" type="color" value="#2ECC71">
     </div>
     <div class="modal-actions">
       <button id="cancel-btn">Cancel</button>
@@ -537,10 +537,10 @@
 <script>
 (function(){
   const CATS = {
-    apps:     { label: 'To-do', hex: '#E13A46' },
-    social:   { label: 'To-do', hex: '#E55581' },
-    projects: { label: 'To-do', hex: '#DE4824' },
-    other:    { label: 'To-do', hex: '#EAA978' },
+    apps:     { label: 'To-do', hex: '#2ECC71' },
+    social:   { label: 'To-do', hex: '#27AE60' },
+    projects: { label: 'To-do', hex: '#3CB371' },
+    other:    { label: 'To-do', hex: '#66BB6A' },
   };
 
   // this page used to be three separate To-do pages (School, RA, Lab) —
@@ -1256,6 +1256,21 @@
   const popupSvgNS = 'http://www.w3.org/2000/svg';
   let popupOpen = false;
   let openPopupId = null;
+  let chainNode = null;
+  let chainAnchorX = 0, chainAnchorY = 0; // the star's screen position when the chain was drawn
+  let chainGroupEl = null;
+
+  // keeps the whole chain rigidly attached to its star as the star moves
+  // (from orbiting, panning, or both) — called every animation frame
+  // while a popup is open, rather than the chain being drawn once and
+  // left behind wherever the star used to be
+  function updateChainPosition(){
+    if (!popupOpen || !chainNode || !chainGroupEl || !chainNode._star) return;
+    const rect = chainNode._star.getBoundingClientRect();
+    const sx = rect.left + rect.width/2;
+    const sy = rect.top + rect.height/2;
+    chainGroupEl.setAttribute('transform', `translate(${sx - chainAnchorX},${sy - chainAnchorY})`);
+  }
 
   function popupDot(svg, x, y, color, r){
     const dot = document.createElementNS(popupSvgNS, 'circle');
@@ -1323,6 +1338,16 @@
     const sy = rect.top + rect.height/2;
     const color = n.color || CATS[n.category]?.hex || '#EDEBF7';
 
+    // everything below gets drawn into this group instead of straight
+    // into the svg, so the whole chain can be shifted as one rigid unit
+    // to follow the star every frame (see updateChainPosition)
+    const chainGroup = document.createElementNS(svg.namespaceURI, 'g');
+    svg.appendChild(chainGroup);
+    chainNode = n;
+    chainAnchorX = sx; chainAnchorY = sy;
+    chainGroupEl = chainGroup;
+    const container = chainGroup;
+
     // branch away from whichever side of the screen has more room
     const flip = sx > window.innerWidth * 0.6;
     const dir = flip ? -1 : 1;
@@ -1346,7 +1371,7 @@
     const fabZoneX = window.innerWidth - 100, fabZoneY = window.innerHeight - 170;
 
     let px = sx, py = sy;
-    popupDot(svg, sx, sy, color, 2.6);
+    popupDot(container, sx, sy, color, 2.6);
 
     const segments = [];
 
@@ -1364,17 +1389,17 @@
       const delay = i * segDur;
 
       // the line grows out to this point first...
-      const line = popupLineGrow(svg, px, py, nx, ny, color, delay, segDur);
+      const line = popupLineGrow(container, px, py, nx, ny, color, delay, segDur);
 
       // ...then its node and label fade in right as it arrives
       const revealAt = delay + segDur - 70;
-      const dot = popupDot(svg, nx, ny, color, 2.4);
+      const dot = popupDot(container, nx, ny, color, 2.4);
       fadeInAfter(dot, revealAt, '0.9');
 
       const textX = nx + 9 * dir;
       const anchorEnd = dir < 0;
-      const capEl = popupText(svg, textX, ny - 3, f.caption, 'pl-caption', anchorEnd);
-      const valEl = popupText(svg, textX, ny + 11, f.value, 'pl-value', anchorEnd);
+      const capEl = popupText(container, textX, ny - 3, f.caption, 'pl-caption', anchorEnd);
+      const valEl = popupText(container, textX, ny + 11, f.value, 'pl-value', anchorEnd);
       fadeInAfter(capEl, revealAt, '1');
       fadeInAfter(valEl, revealAt, '1');
       if (f.isLink){
@@ -1469,6 +1494,8 @@
   function hideTaskDetails(){
     popupOpen = false;
     openPopupId = null;
+    chainNode = null;
+    chainGroupEl = null;
     const svg = document.getElementById('popup-line');
     if (svg) svg.innerHTML = '';
   }
@@ -1689,6 +1716,9 @@
       }
     });
 
+    // keep any open task-detail chain glued to its star as it moves
+    updateChainPosition();
+
     requestAnimationFrame(orbitFrame);
   }
   if (!reduceMotion){
@@ -1845,7 +1875,7 @@
     document.getElementById('f-subject').value = '';
     document.getElementById('f-due').value = '';
     document.getElementById('f-url').value = '';
-    document.getElementById('f-color').value = '#E13A46';
+    document.getElementById('f-color').value = '#2ECC71';
     overlay.classList.add('open');
     document.getElementById('f-name').focus();
     buildModalFrame();

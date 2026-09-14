@@ -256,7 +256,7 @@
 
   /* the faceted highlight — hard-edged, solid color, no blur — sits
      right on top of the star/circle's own fill */
-  .node-facet{ opacity: 0.8; pointer-events: none; }
+  .node-facet{ opacity: 0.92; pointer-events: none; }
 
   /* a tiny specular glint — like light catching a cut gem — flat, not a
      gradient, just a small bright point that flashes on its own cycle,
@@ -880,6 +880,18 @@
     b = Math.round(b + (255-b)*amt);
     return `rgb(${r},${g},${b})`;
   }
+  // blends a hex color toward black by `amt` (0-1) — the shadow-side
+  // counterpart to lighten(), for the same flat two-tone facet technique
+  function darken(hex, amt){
+    const c = hex.replace('#', '');
+    const full = c.length === 3 ? c.split('').map(x => x+x).join('') : c;
+    const num = parseInt(full, 16);
+    let r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
+    r = Math.round(r * (1-amt));
+    g = Math.round(g * (1-amt));
+    b = Math.round(b * (1-amt));
+    return `rgb(${r},${g},${b})`;
+  }
 
 
   function computeTargets(){
@@ -966,20 +978,70 @@
     haloInner.setAttribute('r', 34);
     haloInner.setAttribute('fill', 'url(#atmoGrad)');
 
+    const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
+
+    // a ring, drawn before the core so the core naturally occludes its
+    // middle section — reads as passing behind the planet on both sides
+    const ring = document.createElementNS(svgNS, 'ellipse');
+    ring.setAttribute('rx', 32); ring.setAttribute('ry', 8);
+    ring.setAttribute('transform', 'rotate(-16)');
+    ring.setAttribute('fill', 'none');
+    ring.setAttribute('stroke', 'var(--you-glow)');
+    ring.setAttribute('stroke-width', '1.8');
+    ring.setAttribute('opacity', '0.55');
+
     const core = document.createElementNS(svgNS, 'circle');
     core.setAttribute('r', 19);
     core.setAttribute('fill', 'var(--you-core)');
+    core.setAttribute('stroke', 'var(--you-shadow)');
+    core.setAttribute('stroke-width', '1.2');
     core.setAttribute('filter', 'url(#starglow)');
 
-    // flat highlight facet, same technique as the stars — solid tone,
-    // hard edge, clipped to the core's own circle
-    const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
-    const coreFacet = document.createElementNS(svgNS, 'ellipse');
-    coreFacet.setAttribute('class', 'node-facet');
-    coreFacet.setAttribute('cx', -6); coreFacet.setAttribute('cy', -6);
-    coreFacet.setAttribute('rx', 11); coreFacet.setAttribute('ry', 9);
-    coreFacet.setAttribute('fill', lighten(youCoreHex, 0.45));
-    coreFacet.setAttribute('clip-path', 'url(#circleClip)');
+    // textured surface — a couple of organic bands and a small accent
+    // spot, clipped to the core's own circle, giving it a painted,
+    // planetary look instead of a single flat fill
+    const bandDark = document.createElementNS(svgNS, 'ellipse');
+    bandDark.setAttribute('cx', 2); bandDark.setAttribute('cy', 9);
+    bandDark.setAttribute('rx', 22); bandDark.setAttribute('ry', 7);
+    bandDark.setAttribute('transform', 'rotate(-9)');
+    bandDark.setAttribute('fill', darken(youCoreHex, 0.22));
+    bandDark.setAttribute('opacity', '0.75');
+    bandDark.setAttribute('clip-path', 'url(#circleClip)');
+
+    const bandLight = document.createElementNS(svgNS, 'ellipse');
+    bandLight.setAttribute('cx', -4); bandLight.setAttribute('cy', -8);
+    bandLight.setAttribute('rx', 20); bandLight.setAttribute('ry', 6);
+    bandLight.setAttribute('transform', 'rotate(11)');
+    bandLight.setAttribute('fill', lighten(youCoreHex, 0.38));
+    bandLight.setAttribute('opacity', '0.8');
+    bandLight.setAttribute('clip-path', 'url(#circleClip)');
+
+    const spot = document.createElementNS(svgNS, 'ellipse');
+    spot.setAttribute('cx', 6); spot.setAttribute('cy', 2);
+    spot.setAttribute('rx', 4); spot.setAttribute('ry', 2.6);
+    spot.setAttribute('fill', lighten(youCoreHex, 0.68));
+    spot.setAttribute('opacity', '0.85');
+    spot.setAttribute('clip-path', 'url(#circleClip)');
+
+    // a small moon in continuous orbit — skipped for reduced motion
+    const moonOrbit = document.createElementNS(svgNS, 'g');
+    const moon = document.createElementNS(svgNS, 'circle');
+    moon.setAttribute('cx', 36); moon.setAttribute('cy', 0);
+    moon.setAttribute('r', 2.4);
+    moon.setAttribute('fill', lighten(youCoreHex, 0.55));
+    moon.setAttribute('stroke', darken(youCoreHex, 0.3));
+    moon.setAttribute('stroke-width', '0.6');
+    moonOrbit.appendChild(moon);
+    if (!reduceMotion){
+      const moonAnim = document.createElementNS(svgNS, 'animateTransform');
+      moonAnim.setAttribute('attributeName', 'transform');
+      moonAnim.setAttribute('type', 'rotate');
+      moonAnim.setAttribute('from', '0 0 0');
+      moonAnim.setAttribute('to', '360 0 0');
+      moonAnim.setAttribute('dur', (16 + Math.random()*6).toFixed(1) + 's');
+      moonAnim.setAttribute('repeatCount', 'indefinite');
+      moonOrbit.appendChild(moonAnim);
+    }
 
     const rim = document.createElementNS(svgNS, 'circle');
     rim.setAttribute('r', 19.5);
@@ -995,8 +1057,12 @@
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
+    you.appendChild(ring);
     you.appendChild(core);
-    you.appendChild(coreFacet);
+    you.appendChild(bandDark);
+    you.appendChild(bandLight);
+    you.appendChild(spot);
+    you.appendChild(moonOrbit);
     you.appendChild(rim);
     you.appendChild(label);
     g.appendChild(you);
@@ -1024,10 +1090,13 @@
       glow.style.animationDelay = '-' + (Math.random()*6).toFixed(2) + 's';
 
       const starColor = CATS[n.category]?.hex || CATS.other.hex;
-      const circle = document.createElementNS(svgNS, 'path');
+
+      // a proper layered sparkle burst — long primary rays, shorter
+      // secondary rays rotated 45°, and a bright core — each a distinct
+      // flat tone. Genuinely more visual richness than a single blob,
+      // still zero gradients/blur in the shapes themselves.
+      const circle = document.createElementNS(svgNS, 'g');
       circle.setAttribute('class', 'node-circle node-star');
-      circle.setAttribute('d', 'M0,-10 C1.1,-3.3 3.3,-1.1 10,0 C3.3,1.1 1.1,3.3 0,10 C-1.1,3.3 -3.3,1.1 -10,0 C-3.3,-1.1 -1.1,-3.3 0,-10 Z');
-      circle.setAttribute('fill', starColor);
       circle.setAttribute('filter', 'url(#starglow)');
       circle.style.setProperty('--s-min', (0.72 + Math.random()*0.12).toFixed(2));
       circle.style.setProperty('--s-max', (1.12 + Math.random()*0.22).toFixed(2));
@@ -1037,20 +1106,32 @@
       circle.style.animationDuration = (6 + Math.random()*6).toFixed(2) + 's';
       circle.style.animationDelay = '-' + (Math.random()*12).toFixed(2) + 's';
 
-      // a flat, solid-color highlight facet clipped to the star's own
-      // silhouette — a distinct lighter tone with a hard edge, like one
-      // face of a cut gem catching light, not a gradient/blend
-      const facet = document.createElementNS(svgNS, 'path');
-      facet.setAttribute('class', 'node-facet');
-      facet.setAttribute('d', 'M-3,-9 C-1,-6.5 1,-4.5 5,-3.5 C1.5,-2.5 -1,-1 -3,3 C-3.5,-1 -5.5,-2.5 -9,-3.5 C-5,-4.5 -3.5,-6.5 -3,-9 Z');
-      facet.setAttribute('fill', lighten(starColor, 0.5));
-      facet.setAttribute('clip-path', 'url(#starClip)');
+      const raysSecondary = document.createElementNS(svgNS, 'g');
+      raysSecondary.setAttribute('transform', 'rotate(45)');
+      const raysSecondaryPath = document.createElementNS(svgNS, 'path');
+      raysSecondaryPath.setAttribute('d', 'M0,-8 L1.3,-1.3 L8,0 L1.3,1.3 L0,8 L-1.3,1.3 L-8,0 L-1.3,-1.3 Z');
+      raysSecondaryPath.setAttribute('fill', lighten(starColor, 0.35));
+      raysSecondary.appendChild(raysSecondaryPath);
+
+      const raysPrimary = document.createElementNS(svgNS, 'path');
+      raysPrimary.setAttribute('d', 'M0,-14 L2.2,-2.2 L14,0 L2.2,2.2 L0,14 L-2.2,2.2 L-14,0 L-2.2,-2.2 Z');
+      raysPrimary.setAttribute('fill', starColor);
+      raysPrimary.setAttribute('stroke', darken(starColor, 0.35));
+      raysPrimary.setAttribute('stroke-width', '0.6');
+
+      const starCore = document.createElementNS(svgNS, 'circle');
+      starCore.setAttribute('r', 2.6);
+      starCore.setAttribute('fill', lighten(starColor, 0.78));
+
+      circle.appendChild(raysSecondary);
+      circle.appendChild(raysPrimary);
+      circle.appendChild(starCore);
 
       // small glint highlight, offset slightly off-center like light
-      // catching one facet of the star rather than the whole thing
+      // catching one point of the burst rather than the whole thing
       const glint = document.createElementNS(svgNS, 'circle');
       glint.setAttribute('class', 'node-glint');
-      glint.setAttribute('cx', -2.6); glint.setAttribute('cy', -2.6);
+      glint.setAttribute('cx', -3.2); glint.setAttribute('cy', -3.2);
       glint.setAttribute('r', 1.4);
       glint.style.animationDuration = (3.5 + Math.random()*3.5).toFixed(2) + 's';
       glint.style.animationDelay = '-' + (Math.random()*7).toFixed(2) + 's';
@@ -1059,7 +1140,6 @@
       starWrap.setAttribute('class', 'star-wrap');
       starWrap.appendChild(glow);
       starWrap.appendChild(circle);
-      starWrap.appendChild(facet);
       starWrap.appendChild(glint);
 
       const text = document.createElementNS(svgNS, 'text');

@@ -106,6 +106,10 @@
   }
   #hero-svg{ width: 170px; height: 170px; overflow: visible; display: block; }
   .you-halo{ transform-box: fill-box; transform-origin: center; animation: halo-breathe 7s ease-in-out infinite; }
+  /* the faceted highlight — hard-edged, solid color, no blur — sits
+     right on top of the core's own fill, same technique as the rest
+     of the site */
+  .node-facet{ opacity: 0.8; pointer-events: none; }
   .you-halo-inner{ animation-delay: -3.5s; }
   @keyframes halo-breathe{ 0%,100%{ transform: scale(0.92); opacity: 0.8; } 50%{ transform: scale(1.14); opacity: 1; } }
   @media (prefers-reduced-motion: reduce){ .you-halo{ animation: none; } }
@@ -423,6 +427,20 @@
     }, 60);
   }
 
+  // blends a hex color toward white by `amt` (0-1) — used for the flat
+  // highlight facet on the hero node, a distinct solid tone rather than
+  // any kind of gradient
+  function lighten(hex, amt){
+    const c = hex.replace('#', '');
+    const full = c.length === 3 ? c.split('').map(x => x+x).join('') : c;
+    const num = parseInt(full, 16);
+    let r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
+    r = Math.round(r + (255-r)*amt);
+    g = Math.round(g + (255-g)*amt);
+    b = Math.round(b + (255-b)*amt);
+    return `rgb(${r},${g},${b})`;
+  }
+
   // ---------- hero node ----------
   (function buildHero(){
     const svg = document.getElementById('hero-svg');
@@ -439,6 +457,14 @@
     atmoGrad.setAttribute('id', 'atmoGrad');
     atmoGrad.innerHTML = '<stop offset="0%" stop-color="var(--you-glow)" stop-opacity="0.5"/><stop offset="55%" stop-color="var(--you-glow)" stop-opacity="0.16"/><stop offset="100%" stop-color="var(--you-glow)" stop-opacity="0"/>';
     defs.appendChild(atmoGrad);
+
+    // flat highlight facet clip — same technique used across the rest
+    // of the site: a solid, hard-edged lighter tone, not a gradient
+    const circleClip = document.createElementNS(svgNS, 'clipPath');
+    circleClip.setAttribute('id', 'circleClip');
+    circleClip.innerHTML = '<circle r="20"/>';
+    defs.appendChild(circleClip);
+
     svg.appendChild(defs);
 
     const haloOuter = document.createElementNS(svgNS, 'circle');
@@ -451,6 +477,14 @@
     const core = document.createElementNS(svgNS, 'circle');
     core.setAttribute('r', 19); core.setAttribute('fill', 'var(--you-core)'); core.setAttribute('filter', 'url(#starglow)');
 
+    const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
+    const coreFacet = document.createElementNS(svgNS, 'ellipse');
+    coreFacet.setAttribute('class', 'node-facet');
+    coreFacet.setAttribute('cx', -6); coreFacet.setAttribute('cy', -6);
+    coreFacet.setAttribute('rx', 11); coreFacet.setAttribute('ry', 9);
+    coreFacet.setAttribute('fill', lighten(youCoreHex, 0.45));
+    coreFacet.setAttribute('clip-path', 'url(#circleClip)');
+
     const rim = document.createElementNS(svgNS, 'circle');
     rim.setAttribute('r', 19.5); rim.setAttribute('fill', 'none');
     rim.setAttribute('stroke', 'var(--you-glow)'); rim.setAttribute('stroke-width', '0.7'); rim.setAttribute('opacity', '0.55');
@@ -459,7 +493,7 @@
     label.setAttribute('class', 'you-label'); label.setAttribute('y', 44);
     label.textContent = 'Portfolio';
 
-    svg.appendChild(haloOuter); svg.appendChild(haloInner); svg.appendChild(core); svg.appendChild(rim); svg.appendChild(label);
+    svg.appendChild(haloOuter); svg.appendChild(haloInner); svg.appendChild(core); svg.appendChild(coreFacet); svg.appendChild(rim); svg.appendChild(label);
   })();
 
   document.getElementById('portfolio-hero').addEventListener('click', goToPhotography);

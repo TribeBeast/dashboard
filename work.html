@@ -254,6 +254,10 @@
     50% { opacity: 0.4; transform: scale(1.2); }
   }
 
+  /* the faceted highlight — hard-edged, solid color, no blur — sits
+     right on top of the star/circle's own fill */
+  .node-facet{ opacity: 0.8; pointer-events: none; }
+
   /* a tiny specular glint — like light catching a cut gem — flat, not a
      gradient, just a small bright point that flashes on its own cycle,
      giving the star some sparkle without adding any shading */
@@ -891,6 +895,20 @@
     return ((h % 1000) + 1000) % 1000 / 1000;
   }
 
+  // blends a hex color toward white by `amt` (0-1) — used for the flat
+  // highlight facet on stars/nodes, a distinct solid tone rather than
+  // any kind of gradient
+  function lighten(hex, amt){
+    const c = hex.replace('#', '');
+    const full = c.length === 3 ? c.split('').map(x => x+x).join('') : c;
+    const num = parseInt(full, 16);
+    let r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
+    r = Math.round(r + (255-r)*amt);
+    g = Math.round(g + (255-g)*amt);
+    b = Math.round(b + (255-b)*amt);
+    return `rgb(${r},${g},${b})`;
+  }
+
 
   function computeTargets(){
     const byGroup = {};
@@ -940,6 +958,24 @@
     atmoGrad.setAttribute('id', 'atmoGrad');
     atmoGrad.innerHTML = '<stop offset="0%" stop-color="var(--you-glow)" stop-opacity="0.5"/><stop offset="55%" stop-color="var(--you-glow)" stop-opacity="0.16"/><stop offset="100%" stop-color="var(--you-glow)" stop-opacity="0"/>';
     defs.appendChild(atmoGrad);
+
+    // shared clip shapes for the faceted highlight look — a solid-color
+    // highlight clipped to the star/circle's own silhouette, hard-edged,
+    // no blur or gradient, like one flat facet of a cut gem catching light
+    const starClip = document.createElementNS(svgNS, 'clipPath');
+    starClip.setAttribute('id', 'starClip');
+    starClip.innerHTML = '<path d="M0,-10 C1.1,-3.3 3.3,-1.1 10,0 C3.3,1.1 1.1,3.3 0,10 C-1.1,3.3 -3.3,1.1 -10,0 C-3.3,-1.1 -1.1,-3.3 0,-10 Z"/>';
+    defs.appendChild(starClip);
+
+    const circleClip = document.createElementNS(svgNS, 'clipPath');
+    circleClip.setAttribute('id', 'circleClip');
+    circleClip.innerHTML = '<circle r="20"/>';
+    defs.appendChild(circleClip);
+
+    const circleClipSmall = document.createElementNS(svgNS, 'clipPath');
+    circleClipSmall.setAttribute('id', 'circleClipSmall');
+    circleClipSmall.innerHTML = '<circle r="11"/>';
+    defs.appendChild(circleClipSmall);
 
     svg.appendChild(defs);
 
@@ -991,6 +1027,16 @@
     core.setAttribute('fill', 'var(--you-core)');
     core.setAttribute('filter', 'url(#starglow)');
 
+    // flat highlight facet, same technique as the stars — solid tone,
+    // hard edge, clipped to the core's own circle
+    const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
+    const coreFacet = document.createElementNS(svgNS, 'ellipse');
+    coreFacet.setAttribute('class', 'node-facet');
+    coreFacet.setAttribute('cx', -6); coreFacet.setAttribute('cy', -6);
+    coreFacet.setAttribute('rx', 11); coreFacet.setAttribute('ry', 9);
+    coreFacet.setAttribute('fill', lighten(youCoreHex, 0.45));
+    coreFacet.setAttribute('clip-path', 'url(#circleClip)');
+
     const rim = document.createElementNS(svgNS, 'circle');
     rim.setAttribute('r', 19.5);
     rim.setAttribute('fill', 'none');
@@ -1006,6 +1052,7 @@
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
     you.appendChild(core);
+    you.appendChild(coreFacet);
     you.appendChild(rim);
     you.appendChild(label);
     g.appendChild(you);
@@ -1041,6 +1088,13 @@
       mCore.setAttribute('fill', 'var(--you-core)');
       mCore.setAttribute('filter', 'url(#starglow)');
 
+      const mFacet = document.createElementNS(svgNS, 'ellipse');
+      mFacet.setAttribute('class', 'node-facet');
+      mFacet.setAttribute('cx', -3.2); mFacet.setAttribute('cy', -3.2);
+      mFacet.setAttribute('rx', 6); mFacet.setAttribute('ry', 5);
+      mFacet.setAttribute('fill', lighten(getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim(), 0.45));
+      mFacet.setAttribute('clip-path', 'url(#circleClipSmall)');
+
       const mRim = document.createElementNS(svgNS, 'circle');
       mRim.setAttribute('r', 10.4);
       mRim.setAttribute('fill', 'none');
@@ -1057,6 +1111,7 @@
       mini.appendChild(mHaloOuter);
       mini.appendChild(mHaloInner);
       mini.appendChild(mCore);
+      mini.appendChild(mFacet);
       mini.appendChild(mRim);
       mini.appendChild(mLabel);
       g.appendChild(mini);
@@ -1095,10 +1150,11 @@
       glow.style.animationDuration = (4 + Math.random()*3).toFixed(2) + 's';
       glow.style.animationDelay = '-' + (Math.random()*6).toFixed(2) + 's';
 
+      const starColor = CATS[n.category]?.hex || CATS.other.hex;
       const circle = document.createElementNS(svgNS, 'path');
       circle.setAttribute('class', 'node-circle node-star');
       circle.setAttribute('d', 'M0,-10 C1.1,-3.3 3.3,-1.1 10,0 C3.3,1.1 1.1,3.3 0,10 C-1.1,3.3 -3.3,1.1 -10,0 C-3.3,-1.1 -1.1,-3.3 0,-10 Z');
-      circle.setAttribute('fill', CATS[n.category]?.hex || CATS.other.hex);
+      circle.setAttribute('fill', starColor);
       circle.setAttribute('filter', 'url(#starglow)');
       circle.style.setProperty('--s-min', (0.72 + Math.random()*0.12).toFixed(2));
       circle.style.setProperty('--s-max', (1.12 + Math.random()*0.22).toFixed(2));
@@ -1107,6 +1163,16 @@
       circle.style.setProperty('--rot', (Math.random()*10 - 5).toFixed(1) + 'deg');
       circle.style.animationDuration = (6 + Math.random()*6).toFixed(2) + 's';
       circle.style.animationDelay = '-' + (Math.random()*12).toFixed(2) + 's';
+
+      // a flat, solid-color highlight facet clipped to the star's own
+      // silhouette — a distinct lighter tone with a hard edge, like one
+      // face of a cut gem catching light, not a gradient/blend
+      const facet = document.createElementNS(svgNS, 'path');
+      facet.setAttribute('class', 'node-facet');
+      facet.setAttribute('d', 'M-3,-9 C-1,-6.5 1,-4.5 5,-3.5 C1.5,-2.5 -1,-1 -3,3 C-3.5,-1 -5.5,-2.5 -9,-3.5 C-5,-4.5 -3.5,-6.5 -3,-9 Z');
+      facet.setAttribute('fill', lighten(starColor, 0.5));
+      facet.setAttribute('clip-path', 'url(#starClip)');
+
       // small glint highlight, offset slightly off-center like light
       // catching one facet of the star rather than the whole thing
       const glint = document.createElementNS(svgNS, 'circle');
@@ -1120,6 +1186,7 @@
       starWrap.setAttribute('class', 'star-wrap');
       starWrap.appendChild(glow);
       starWrap.appendChild(circle);
+      starWrap.appendChild(facet);
       starWrap.appendChild(glint);
 
       const text = document.createElementNS(svgNS, 'text');

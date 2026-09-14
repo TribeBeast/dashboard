@@ -236,8 +236,49 @@
     0%, 100% { transform: scale(var(--s-min, 0.8)) rotate(0deg); opacity: var(--o-min, 0.65); }
     50% { transform: scale(var(--s-max, 1.2)) rotate(var(--rot, 5deg)); opacity: var(--o-max, 1); }
   }
+
+  /* a soft, slow-pulsing light behind each star — gives it presence
+     without the layered gradient "shading" look; just a gentle glow,
+     like the star casting a bit of its own light */
+  .node-glow{
+    transform-box: fill-box;
+    transform-origin: center;
+    filter: blur(6px);
+    opacity: 0.3;
+    animation-name: node-glow-pulse;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+  }
+  @keyframes node-glow-pulse{
+    0%, 100% { opacity: 0.18; transform: scale(0.85); }
+    50% { opacity: 0.4; transform: scale(1.2); }
+  }
+
+  /* each star drifts gently and independently, so the whole field feels
+     alive at rest rather than only reacting to hover — purely a local
+     offset, doesn't touch the positioning transform the layout controls */
+  .float-wrap{
+    animation-name: node-float;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+  }
+  @keyframes node-float{
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(var(--float-x, 0px), var(--float-y, -3px)); }
+  }
+
+  /* connecting lines get a slow breathing pulse instead of sitting
+     perfectly static — reads as a faint current running along them */
+  .node-line{
+    animation: line-breathe 5s ease-in-out infinite;
+  }
+  @keyframes line-breathe{
+    0%, 100% { opacity: 0.09; }
+    50% { opacity: 0.22; }
+  }
+
   @media (prefers-reduced-motion: reduce){
-    .node-star{ animation: none; }
+    .node-star, .node-glow, .float-wrap, .node-line{ animation: none; }
   }
 
   .you-label{
@@ -890,8 +931,11 @@
     g.appendChild(lineGroup);
     nodes.forEach(n => {
       const line = document.createElementNS(svgNS, 'line');
-      line.setAttribute('stroke', 'rgba(255,255,255,0.12)');
+      line.setAttribute('class', 'node-line');
+      line.setAttribute('stroke', '#EDEBF7');
       line.setAttribute('stroke-width', '1');
+      // stagger each line's breathing so they don't all pulse in lockstep
+      line.style.animationDelay = '-' + (Math.random()*5).toFixed(2) + 's';
       lineGroup.appendChild(line);
       n._line = line;
     });
@@ -1008,6 +1052,15 @@
       hitArea.setAttribute('r', 22);
       group.appendChild(hitArea);
 
+      // a soft pulsing glow sitting behind the star itself — separate
+      // timing from the star's own twinkle so the two never sync up
+      const glow = document.createElementNS(svgNS, 'circle');
+      glow.setAttribute('class', 'node-glow');
+      glow.setAttribute('r', 9);
+      glow.setAttribute('fill', CATS[n.category]?.hex || CATS.other.hex);
+      glow.style.animationDuration = (4 + Math.random()*3).toFixed(2) + 's';
+      glow.style.animationDelay = '-' + (Math.random()*6).toFixed(2) + 's';
+
       const circle = document.createElementNS(svgNS, 'path');
       circle.setAttribute('class', 'node-circle node-star');
       circle.setAttribute('d', 'M0,-10 C1.1,-3.3 3.3,-1.1 10,0 C3.3,1.1 1.1,3.3 0,10 C-1.1,3.3 -3.3,1.1 -10,0 C-3.3,-1.1 -1.1,-3.3 0,-10 Z');
@@ -1022,6 +1075,7 @@
       circle.style.animationDelay = '-' + (Math.random()*12).toFixed(2) + 's';
       const starWrap = document.createElementNS(svgNS, 'g');
       starWrap.setAttribute('class', 'star-wrap');
+      starWrap.appendChild(glow);
       starWrap.appendChild(circle);
 
       const text = document.createElementNS(svgNS, 'text');
@@ -1029,8 +1083,20 @@
       text.setAttribute('x', 13);
       text.setAttribute('y', 4);
       text.textContent = n.name;
-      group.appendChild(starWrap);
-      group.appendChild(text);
+
+      // the star and its label float together as one gently drifting
+      // unit — independent per-star timing/range so the whole field
+      // moves organically rather than in unison
+      const floatWrap = document.createElementNS(svgNS, 'g');
+      floatWrap.setAttribute('class', 'float-wrap');
+      floatWrap.style.setProperty('--float-x', (Math.random()*6 - 3).toFixed(1) + 'px');
+      floatWrap.style.setProperty('--float-y', (Math.random()*8 - 4).toFixed(1) + 'px');
+      floatWrap.style.animationDuration = (7 + Math.random()*5).toFixed(2) + 's';
+      floatWrap.style.animationDelay = '-' + (Math.random()*10).toFixed(2) + 's';
+      floatWrap.appendChild(starWrap);
+      floatWrap.appendChild(text);
+
+      group.appendChild(floatWrap);
       g.appendChild(group);
       n._group = group;
       n._star = circle;

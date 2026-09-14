@@ -36,6 +36,11 @@
     color: var(--text);
     font-family: 'Inter', sans-serif;
     overflow: hidden;
+    /* iOS Safari ignores the viewport meta tag's user-scalable=no, but it
+       DOES respect touch-action — this is what actually stops pinch from
+       being interpreted as a zoom gesture in the first place, rather
+       than just trying to hide the result after the fact */
+    touch-action: pan-x pan-y;
   }
 
   #space-bg{

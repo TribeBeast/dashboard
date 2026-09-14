@@ -36,6 +36,11 @@
     color: var(--text);
     font-family: 'Inter', sans-serif;
     overflow: hidden;
+    /* iOS Safari ignores the viewport meta tag's user-scalable=no, but it
+       DOES respect touch-action — this is what actually stops pinch from
+       being interpreted as a zoom gesture in the first place, rather
+       than just trying to hide the result after the fact */
+    touch-action: pan-x pan-y;
   }
 
   #space-bg{
@@ -502,10 +507,10 @@
     { id: 'ra5', name: 'Outlook', url: 'https://outlook.office.com/mail/caquinones@ucsd.edu/', category: 'social', hub: 'ra' },
     { id: 'ra6', name: 'Teams',   url: 'https://teams.microsoft.com/v2/', category: 'projects', hub: 'ra' },
     { id: 'ra7', name: 'Canva',   url: 'https://www.canva.com/', category: 'other', hub: 'ra' },
-    { id: 'ra8', name: 'To-do',   url: 'work-todo.html', category: 'other', hub: 'ra' },
+    { id: 'ra8', name: 'To-do',   url: 'todo.html', category: 'other', hub: 'ra' },
     // Lab cluster
     { id: 'lab1', name: 'Calendar', url: 'https://calendar.google.com/', category: 'apps', hub: 'lab' },
-    { id: 'lab2', name: 'To-do',    url: 'work-lab-todo.html', category: 'social', hub: 'lab' },
+    { id: 'lab2', name: 'To-do',    url: 'todo.html', category: 'social', hub: 'lab' },
   ];
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

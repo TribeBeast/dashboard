@@ -36,6 +36,11 @@
     color: var(--text);
     font-family: 'Inter', sans-serif;
     overflow: hidden;
+    /* iOS Safari ignores the viewport meta tag's user-scalable=no, but it
+       DOES respect touch-action — this is what actually stops pinch from
+       being interpreted as a zoom gesture in the first place, rather
+       than just trying to hide the result after the fact */
+    touch-action: pan-x pan-y;
   }
 
   #space-bg{
@@ -353,7 +358,7 @@
     color: #EDEBF7;
     text-shadow: 0 0 6px rgba(237,235,247,0.45);
   }
-  .field input{
+  .field input, .field select{
     width: 100%; background: rgba(5,6,15,0.55); border-radius: 7px;
     color: var(--text); font-family: 'Inter', sans-serif; font-size: 13.5px; padding: 9px 10px;
     border: 1px solid rgba(237,235,247,0.55);
@@ -408,7 +413,7 @@
 </div>
 
 <div id="fab-controls">
-  <button id="home-icon-btn" class="icon-btn" aria-label="Back to School" title="Back to School"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-9"/></svg></button>
+  <button id="home-icon-btn" class="icon-btn" aria-label="Back to Home" title="Back to Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-9"/></svg></button>
   <button id="drawer-toggle" class="icon-btn" aria-label="Widgets" title="Widgets"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="1.6" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="7" cy="17" r="1.6" fill="currentColor" stroke="none"/></svg></button>
   <button id="add-btn" class="icon-btn" aria-label="Add a link" title="Add a link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 </div>
@@ -492,6 +497,14 @@
     <svg id="modal-frame"></svg>
     <h2>Add a task</h2>
     <div class="field">
+      <label for="f-hub">Belongs to</label>
+      <select id="f-hub">
+        <option value="school">School</option>
+        <option value="ra">RA</option>
+        <option value="lab">Lab</option>
+      </select>
+    </div>
+    <div class="field">
       <label for="f-name">Assignment name</label>
       <input id="f-name" type="text" placeholder="e.g. Chapter 5 questions">
     </div>
@@ -530,8 +543,12 @@
     other:    { label: 'To-do', hex: '#EAA978' },
   };
 
+  // this page used to be three separate To-do pages (School, RA, Lab) —
+  // now they're three orbiting clusters on one page, School/RA/Lab tasks
+  // kept exactly as they were, just tagged with which hub they belong to
   const DEFAULT_NODES = [
-    { id: 'test1', name: 'Read Chapter 5', subject: 'History', dueDate: '2026-09-18', url: '', category: 'apps' },
+    { id: 'test1', name: 'Read Chapter 5', subject: 'History', dueDate: '2026-09-18', url: '', category: 'apps', hub: 'school' },
+    { id: 'n1', name: 'Pick Project', url: '', subject: '', dueDate: '', category: 'apps', hub: 'lab' },
   ];
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -640,17 +657,17 @@
 
   // ---------- storage (plain localStorage, works on any host) ----------
   async function loadState(){
-    const saved = await SiteSync.loadFreshest('todo-nodes', true);
+    const saved = await SiteSync.loadFreshest('alltodo-nodes', true);
     nodes = saved && saved.length ? saved : DEFAULT_NODES.map(n => ({...n}));
 
-    const nt = await SiteSync.loadFreshest('todo-notes', false);
+    const nt = await SiteSync.loadFreshest('alltodo-notes', false);
     if (nt) document.getElementById('notes').value = nt;
   }
   async function saveNodes(){
-    SiteSync.save('todo-nodes', nodes);
+    SiteSync.save('alltodo-nodes', nodes);
   }
   async function saveNotes(val){
-    SiteSync.save('todo-notes', val);
+    SiteSync.save('alltodo-notes', val);
   }
 
 
@@ -867,7 +884,7 @@
         existing.url = a.html_url || '';
         existing.dueDate = dueDate;
       } else {
-        nodes.push({ id, name, url: a.html_url || '', dueDate, category: CV_CATS[colorIdx % CV_CATS.length] });
+        nodes.push({ id, name, url: a.html_url || '', dueDate, category: CV_CATS[colorIdx % CV_CATS.length], hub: 'school' });
       }
       colorIdx++;
     });
@@ -905,8 +922,24 @@
   }
 
   // ---------- layout ----------
-  const RING_RADIUS = { apps: 190, social: 140, projects: 240, other: 280 };
-  const CAT_ANGLE_OFFSET = { apps: -60, social: 90, projects: 210, other: 320 };
+  // School, RA, and Lab are their own separate clusters on this same
+  // page, each with their own anchor point — To-do stays the true
+  // center, with no line connecting it to any cluster
+  const HUB_ANCHORS = {
+    todo:   { x: 0, y: 0 },
+    school: { x: -259.8, y: -150 },
+    ra:     { x: 259.8, y: -150 },
+    lab:    { x: 0, y: 300 },
+  };
+  // all three share the same orbit speed so the 120° spacing between
+  // them stays exact forever, rotating together as a fixed formation
+  const ORBIT = {
+    school: { radius: Math.hypot(HUB_ANCHORS.school.x, HUB_ANCHORS.school.y), angle: Math.atan2(HUB_ANCHORS.school.y, HUB_ANCHORS.school.x), speed: (2*Math.PI)/340 },
+    ra:     { radius: Math.hypot(HUB_ANCHORS.ra.x, HUB_ANCHORS.ra.y), angle: Math.atan2(HUB_ANCHORS.ra.y, HUB_ANCHORS.ra.x), speed: (2*Math.PI)/340 },
+    lab:    { radius: Math.hypot(HUB_ANCHORS.lab.x, HUB_ANCHORS.lab.y), angle: Math.atan2(HUB_ANCHORS.lab.y, HUB_ANCHORS.lab.x), speed: (2*Math.PI)/340 },
+  };
+  const RING_RADIUS = { apps: 105, social: 145, projects: 95, other: 125 };
+  const CAT_ANGLE_OFFSET = { apps: 15, social: 110, projects: 205, other: 300 };
 
   // stable pseudo-random 0..1 from a string, so the "natural" jitter
   // stays put across relayouts instead of reshuffling every time
@@ -918,20 +951,30 @@
 
 
   function computeTargets(){
-    const byCat = {};
-    nodes.forEach(n => { (byCat[n.category] ||= []).push(n); });
-    Object.keys(byCat).forEach(cat => {
-      const arr = byCat[cat];
-      const spread = 130;
+    const byGroup = {};
+    nodes.forEach(n => {
+      const hub = n.hub || 'todo';
+      const key = hub + '|' + n.category;
+      (byGroup[key] ||= []).push(n);
+    });
+    Object.keys(byGroup).forEach(key => {
+      const [hub, cat] = key.split('|');
+      const anchor = HUB_ANCHORS[hub] || HUB_ANCHORS.todo;
+      const arr = byGroup[key];
+      const spread = 65;
       const base = CAT_ANGLE_OFFSET[cat] ?? 270;
       arr.forEach((n, i) => {
         const t = arr.length === 1 ? 0.5 : i/(arr.length-1);
         const rand = hash01(n.id);
         const rand2 = hash01(n.id + 'r');
-        const angle = (base - spread/2 + t*spread + (rand-0.5)*46) * Math.PI/180;
-        const r = (RING_RADIUS[cat] ?? 220) + (rand2-0.5)*140;
-        n.tx = Math.cos(angle) * r;
-        n.ty = Math.sin(angle) * r;
+        const angle = (base - spread/2 + t*spread + (rand-0.5)*26) * Math.PI/180;
+        const r = Math.max(90, (RING_RADIUS[cat] ?? 130) + (rand2-0.5)*40);
+        n.tx = anchor.x + Math.cos(angle) * r;
+        n.ty = anchor.y + Math.sin(angle) * r;
+        // remember this node's position relative to its own hub, so that
+        // as the hub orbits, the node can just be re-anchored each frame
+        n.relX = n.tx - anchor.x;
+        n.relY = n.ty - anchor.y;
         if (n.x === undefined){ n.x = n.tx + (Math.random()-0.5)*20; n.y = n.ty + (Math.random()-0.5)*20; }
       });
     });
@@ -960,6 +1003,18 @@
     const g = document.createElementNS(svgNS, 'g');
     g.setAttribute('id', 'scene');
     svg.appendChild(g);
+
+    // faint orbit rings, drawn first so they sit behind everything else
+    ['school', 'ra', 'lab'].forEach(hub => {
+      const ring = document.createElementNS(svgNS, 'circle');
+      ring.setAttribute('cx', 0); ring.setAttribute('cy', 0);
+      ring.setAttribute('r', ORBIT[hub].radius);
+      ring.setAttribute('fill', 'none');
+      ring.setAttribute('stroke', 'rgba(237,235,247,0.09)');
+      ring.setAttribute('stroke-width', '1');
+      ring.setAttribute('stroke-dasharray', '2,6');
+      g.appendChild(ring);
+    });
 
     const lineGroup = document.createElementNS(svgNS, 'g');
     lineGroup.id = 'lines';
@@ -1009,6 +1064,57 @@
     you.appendChild(label);
     g.appendChild(you);
     gEls.you = you;
+
+    // School, RA, and Lab get their own small hub markers, positioned at
+    // their anchors — decorative labels for the cluster, not clickable,
+    // deliberately not connected back to To-do by any line
+    gEls.miniHubs = {};
+    [
+      { hub: 'school', label: 'School' },
+      { hub: 'ra', label: 'RA' },
+      { hub: 'lab', label: 'Lab' },
+    ].forEach(({ hub, label: hubLabel }) => {
+      const anchor = HUB_ANCHORS[hub];
+      const mini = document.createElementNS(svgNS, 'g');
+      mini.setAttribute('class', 'you-node');
+      mini.setAttribute('transform', `translate(${anchor.x},${anchor.y})`);
+      gEls.miniHubs[hub] = mini;
+
+      const mHaloOuter = document.createElementNS(svgNS, 'circle');
+      mHaloOuter.setAttribute('class', 'you-halo you-halo-outer');
+      mHaloOuter.setAttribute('r', 34);
+      mHaloOuter.setAttribute('fill', 'url(#atmoGrad)');
+
+      const mHaloInner = document.createElementNS(svgNS, 'circle');
+      mHaloInner.setAttribute('class', 'you-halo you-halo-inner');
+      mHaloInner.setAttribute('r', 17);
+      mHaloInner.setAttribute('fill', 'url(#atmoGrad)');
+
+      const mCore = document.createElementNS(svgNS, 'circle');
+      mCore.setAttribute('r', 10);
+      mCore.setAttribute('fill', 'var(--you-core)');
+      mCore.setAttribute('filter', 'url(#starglow)');
+
+      const mRim = document.createElementNS(svgNS, 'circle');
+      mRim.setAttribute('r', 10.4);
+      mRim.setAttribute('fill', 'none');
+      mRim.setAttribute('stroke', 'var(--you-glow)');
+      mRim.setAttribute('stroke-width', '0.6');
+      mRim.setAttribute('opacity', '0.5');
+
+      const mLabel = document.createElementNS(svgNS, 'text');
+      mLabel.setAttribute('class', 'you-label');
+      mLabel.setAttribute('y', 26);
+      mLabel.setAttribute('font-size', '12');
+      mLabel.textContent = hubLabel;
+
+      mini.appendChild(mHaloOuter);
+      mini.appendChild(mHaloInner);
+      mini.appendChild(mCore);
+      mini.appendChild(mRim);
+      mini.appendChild(mLabel);
+      g.appendChild(mini);
+    });
 
     let youDownAt = null, youMoved = false;
     you.addEventListener('pointerdown', e => { youDownAt = {x:e.clientX,y:e.clientY}; youMoved = false; e.stopPropagation(); });
@@ -1103,7 +1209,8 @@
     gEls.you.setAttribute('transform', 'translate(0,0)');
     nodes.forEach(n => {
       n._group.setAttribute('transform', `translate(${n.x},${n.y})`);
-      n._line.setAttribute('x1', 0); n._line.setAttribute('y1', 0);
+      const anchor = HUB_ANCHORS[n.hub || 'todo'];
+      n._line.setAttribute('x1', anchor.x); n._line.setAttribute('y1', anchor.y);
       n._line.setAttribute('x2', n.x); n._line.setAttribute('y2', n.y);
     });
     const bg = document.getElementById('space-bg');
@@ -1471,7 +1578,7 @@
   // ---------- zoom out to go home (reverse of warping into a star) ----------
   function zoomOutHome(){
     if (warping) return;
-    if (reduceMotion){ window.location.href = 'school.html'; return; }
+    if (reduceMotion){ window.location.href = 'index.html'; return; }
 
     warping = true;
     svg.style.pointerEvents = 'none';
@@ -1507,7 +1614,7 @@
       if (t < 1){
         requestAnimationFrame(frame);
       } else {
-        window.location.href = 'school.html';
+        window.location.href = 'index.html';
 
         // safety net: restore interactivity if navigation didn't
         // actually happen, instead of leaving the graph locked
@@ -1546,6 +1653,48 @@
       positionScene();
       settling = true;
       requestAnimationFrame(tick);
+    }
+  }
+
+  // School, RA, and Lab slowly drift around To-do along their orbit ring
+  // — this runs continuously, separately from the initial settle-in tween
+  let orbitLastTs = null;
+  let orbitStarted = false;
+  function orbitFrame(ts){
+    if (orbitLastTs === null) orbitLastTs = ts;
+    const dt = (ts - orbitLastTs) / 1000;
+    orbitLastTs = ts;
+
+    ['school', 'ra', 'lab'].forEach(hub => {
+      const o = ORBIT[hub];
+      o.angle += o.speed * dt;
+      const anchor = HUB_ANCHORS[hub];
+      anchor.x = Math.cos(o.angle) * o.radius;
+      anchor.y = Math.sin(o.angle) * o.radius;
+      if (gEls.miniHubs && gEls.miniHubs[hub]){
+        gEls.miniHubs[hub].setAttribute('transform', `translate(${anchor.x},${anchor.y})`);
+      }
+    });
+
+    nodes.forEach(n => {
+      if (n.hub !== 'school' && n.hub !== 'ra' && n.hub !== 'lab') return;
+      const anchor = HUB_ANCHORS[n.hub];
+      n.x = anchor.x + (n.relX || 0);
+      n.y = anchor.y + (n.relY || 0);
+      n.tx = n.x; n.ty = n.y;
+      if (n._group) n._group.setAttribute('transform', `translate(${n.x},${n.y})`);
+      if (n._line){
+        n._line.setAttribute('x1', anchor.x); n._line.setAttribute('y1', anchor.y);
+        n._line.setAttribute('x2', n.x); n._line.setAttribute('y2', n.y);
+      }
+    });
+
+    requestAnimationFrame(orbitFrame);
+  }
+  if (!reduceMotion){
+    if (!orbitStarted){
+      orbitStarted = true;
+      setTimeout(() => requestAnimationFrame(orbitFrame), 1500);
     }
   }
 
@@ -1707,6 +1856,7 @@
   const LAYOUT_CATS = ['apps', 'social', 'projects', 'other'];
 
   document.getElementById('save-btn').addEventListener('click', () => {
+    const hub = document.getElementById('f-hub').value;
     const name = document.getElementById('f-name').value.trim();
     const subject = document.getElementById('f-subject').value.trim();
     const dueDate = document.getElementById('f-due').value;
@@ -1716,7 +1866,7 @@
     // spread new tasks across all four angle slots rather than letting
     // them all fall back to the same default direction
     const category = LAYOUT_CATS[nodes.length % LAYOUT_CATS.length];
-    nodes.push({ id: 'n'+Date.now(), name, url, subject, dueDate, color, category });
+    nodes.push({ id: 'n'+Date.now(), name, url, subject, dueDate, color, category, hub });
     saveNodes();
     overlay.classList.remove('open');
     buildScene();

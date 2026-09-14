@@ -36,6 +36,11 @@
     color: var(--text);
     font-family: 'Inter', sans-serif;
     overflow: hidden;
+    /* iOS Safari ignores the viewport meta tag's user-scalable=no, but it
+       DOES respect touch-action — this is what actually stops pinch from
+       being interpreted as a zoom gesture in the first place, rather
+       than just trying to hide the result after the fact */
+    touch-action: pan-x pan-y;
   }
 
   /* ---------- background layers (same as the rest of the site) ---------- */
@@ -219,6 +224,7 @@
   }
   .field-note{
     font-size: 11px; color: var(--text-dim); margin: -8px 0 15px; line-height: 1.4;
+    overflow-wrap: break-word; word-break: break-word;
   }
   .field-note.warn{ color: #E8B14D; }
   .or-divider{
@@ -236,6 +242,14 @@
   button.plain-btn:hover{ border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.08); }
   .btn-primary{ background: #EDEBF7; color: #0C0F26; border: none; font-weight: 600; }
   .btn-primary:hover{ background: #FFFFFF; }
+
+  @media (max-width: 600px){
+    #portfolio-hero{ top: 1.5%; }
+    #hero-svg{ width: 130px; height: 130px; }
+    .belt-item{ width: 108px; height: 128px; }
+    .belt-track{ gap: 12px; }
+    .belt-wrap{ height: 160px; }
+  }
 </style>
 </head>
 <body>

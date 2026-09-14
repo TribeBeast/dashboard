@@ -1013,6 +1013,39 @@
     shine.setAttribute('opacity', '0.7');
     shine.setAttribute('clip-path', 'url(#circleClip)');
 
+    // a small secondary shadow patch on the opposite side, for a touch
+    // more surface variation without going back to full mottled bands
+    const shade = document.createElementNS(svgNS, 'ellipse');
+    shade.setAttribute('cx', 7); shade.setAttribute('cy', 8);
+    shade.setAttribute('rx', 7); shade.setAttribute('ry', 5.5);
+    shade.setAttribute('fill', darken(youCoreHex, 0.16));
+    shade.setAttribute('opacity', '0.5');
+    shade.setAttribute('clip-path', 'url(#circleClip)');
+
+    // a faint outer dotted ring, further out than the two solid rings,
+    // for extra depth
+    const ringOuterFaint = document.createElementNS(svgNS, 'ellipse');
+    ringOuterFaint.setAttribute('rx', 39); ringOuterFaint.setAttribute('ry', 10);
+    ringOuterFaint.setAttribute('transform', 'rotate(-14)');
+    ringOuterFaint.setAttribute('fill', 'none');
+    ringOuterFaint.setAttribute('stroke', 'var(--you-glow)');
+    ringOuterFaint.setAttribute('stroke-width', '0.8');
+    ringOuterFaint.setAttribute('stroke-dasharray', '1,3.5');
+    ringOuterFaint.setAttribute('opacity', '0.35');
+
+    // a couple of small static sparkle flecks near the rings, for
+    // texture/richness beyond the rings and moons alone
+    function makeFleck(x, y, size){
+      const f = document.createElementNS(svgNS, 'path');
+      f.setAttribute('d', `M0,-${size} L${size*0.2},-${size*0.2} L${size},0 L${size*0.2},${size*0.2} L0,${size} L-${size*0.2},${size*0.2} L-${size},0 L-${size*0.2},-${size*0.2} Z`);
+      f.setAttribute('transform', `translate(${x},${y})`);
+      f.setAttribute('fill', lighten(youCoreHex, 0.6));
+      f.setAttribute('opacity', '0.75');
+      return f;
+    }
+    const fleck1 = makeFleck(-30, 12, 1.8);
+    const fleck2 = makeFleck(24, -18, 1.4);
+
     // two moons on independent orbits instead of one
     const moonOrbit = document.createElementNS(svgNS, 'g');
     const moon = document.createElementNS(svgNS, 'circle');
@@ -1066,10 +1099,14 @@
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
+    you.appendChild(ringOuterFaint);
     you.appendChild(ringOuter);
     you.appendChild(ringInner);
     you.appendChild(core);
     you.appendChild(shine);
+    you.appendChild(shade);
+    you.appendChild(fleck1);
+    you.appendChild(fleck2);
     you.appendChild(moonOrbit);
     you.appendChild(moon2Orbit);
     you.appendChild(rim);

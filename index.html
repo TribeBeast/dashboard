@@ -997,17 +997,26 @@
     // orbiting it, since everything else orbits IT conceptually
     const sunRays = document.createElementNS(svgNS, 'g');
     sunRays.setAttribute('class', 'sun-rays');
-    const rayAngles = [0, 45, 90, 135, 180, 225, 270, 315];
+    const rayAngles = [0, 22.5, 45, 67.5, 90, 112.5, 135, 157.5, 180, 202.5, 225, 247.5, 270, 292.5, 315, 337.5];
     rayAngles.forEach((deg, i) => {
       const ray = document.createElementNS(svgNS, 'path');
-      const len = i % 2 === 0 ? 30 : 24;
-      ray.setAttribute('d', `M0,-3 L0,-${len} L0,-3`);
-      ray.setAttribute('d', `M-1.6,-6 L0,-${len} L1.6,-6 Z`);
+      const len = i % 2 === 0 ? 30 : 22;
+      const w = i % 2 === 0 ? 1.6 : 1.1;
+      ray.setAttribute('d', `M-${w},-6 L0,-${len} L${w},-6 Z`);
       ray.setAttribute('transform', `rotate(${deg})`);
       ray.setAttribute('fill', lighten(youCoreHex, i % 2 === 0 ? 0.15 : 0.4));
-      ray.setAttribute('opacity', i % 2 === 0 ? '0.85' : '0.6');
+      ray.setAttribute('opacity', i % 2 === 0 ? '0.85' : '0.55');
       sunRays.appendChild(ray);
     });
+
+    // a faint dotted corona ring just outside the rays
+    const corona = document.createElementNS(svgNS, 'circle');
+    corona.setAttribute('r', 33);
+    corona.setAttribute('fill', 'none');
+    corona.setAttribute('stroke', 'var(--you-glow)');
+    corona.setAttribute('stroke-width', '0.8');
+    corona.setAttribute('stroke-dasharray', '1,4');
+    corona.setAttribute('opacity', '0.4');
 
     const core = document.createElementNS(svgNS, 'circle');
     core.setAttribute('r', 19);
@@ -1025,6 +1034,16 @@
     flare.setAttribute('opacity', '0.7');
     flare.setAttribute('clip-path', 'url(#circleClip)');
 
+    // a small solar prominence — a bump of brighter material arcing off
+    // one edge, for a touch of solar-surface activity
+    const prominence = document.createElementNS(svgNS, 'ellipse');
+    prominence.setAttribute('cx', 12); prominence.setAttribute('cy', 10);
+    prominence.setAttribute('rx', 5); prominence.setAttribute('ry', 3.4);
+    prominence.setAttribute('transform', 'rotate(30 12 10)');
+    prominence.setAttribute('fill', lighten(youCoreHex, 0.35));
+    prominence.setAttribute('opacity', '0.6');
+    prominence.setAttribute('clip-path', 'url(#circleClip)');
+
     const rim = document.createElementNS(svgNS, 'circle');
     rim.setAttribute('r', 19.5);
     rim.setAttribute('fill', 'none');
@@ -1039,9 +1058,11 @@
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
+    you.appendChild(corona);
     you.appendChild(sunRays);
     you.appendChild(core);
     you.appendChild(flare);
+    you.appendChild(prominence);
     you.appendChild(rim);
     you.appendChild(label);
     g.appendChild(you);

@@ -996,14 +996,26 @@
       { cx: -2, cy: 9, r: 3.2 },
       { cx: 9, cy: -8, r: 2.6 },
     ];
-    const craters = craterSpots.map(c => {
+    const craters = [];
+    craterSpots.forEach(c => {
       const crater = document.createElementNS(svgNS, 'circle');
       crater.setAttribute('cx', c.cx); crater.setAttribute('cy', c.cy);
       crater.setAttribute('r', c.r);
       crater.setAttribute('fill', darken(youCoreHex, 0.18));
       crater.setAttribute('opacity', '0.55');
       crater.setAttribute('clip-path', 'url(#circleClip)');
-      return crater;
+      craters.push(crater);
+      // a thin lighter rim on each crater, like a raised edge catching
+      // the light — a bit more dimension than a flat dark circle alone
+      const rimHighlight = document.createElementNS(svgNS, 'circle');
+      rimHighlight.setAttribute('cx', c.cx); rimHighlight.setAttribute('cy', c.cy);
+      rimHighlight.setAttribute('r', c.r);
+      rimHighlight.setAttribute('fill', 'none');
+      rimHighlight.setAttribute('stroke', lighten(youCoreHex, 0.3));
+      rimHighlight.setAttribute('stroke-width', '0.5');
+      rimHighlight.setAttribute('opacity', '0.4');
+      rimHighlight.setAttribute('clip-path', 'url(#circleClip)');
+      craters.push(rimHighlight);
     });
     const shine = document.createElementNS(svgNS, 'ellipse');
     shine.setAttribute('cx', -8); shine.setAttribute('cy', -9);
@@ -1011,6 +1023,15 @@
     shine.setAttribute('fill', lighten(youCoreHex, 0.45));
     shine.setAttribute('opacity', '0.65');
     shine.setAttribute('clip-path', 'url(#circleClip)');
+
+    // a faint dotted dust ring, further out than the sparkle companions
+    const dustRing = document.createElementNS(svgNS, 'circle');
+    dustRing.setAttribute('r', 27);
+    dustRing.setAttribute('fill', 'none');
+    dustRing.setAttribute('stroke', 'var(--you-glow)');
+    dustRing.setAttribute('stroke-width', '0.7');
+    dustRing.setAttribute('stroke-dasharray', '0.5,3');
+    dustRing.setAttribute('opacity', '0.35');
 
     // two tiny sparkle companions, each on their own slow orbit
     function makeSparkleCompanion(radius, dur, size){
@@ -1052,6 +1073,7 @@
     you.appendChild(core);
     craters.forEach(c => you.appendChild(c));
     you.appendChild(shine);
+    you.appendChild(dustRing);
     you.appendChild(sparkle1);
     you.appendChild(sparkle2);
     you.appendChild(rim);

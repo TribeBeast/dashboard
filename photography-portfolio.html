@@ -105,6 +105,18 @@
     transition: opacity 700ms ease;
   }
   #hero-svg{ width: 170px; height: 170px; overflow: visible; display: block; }
+  .aperture-blades{
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: aperture-spin 70s linear infinite;
+  }
+  @keyframes aperture-spin{
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .aperture-blades{ animation: none; }
+  }
   .you-halo{ transform-box: fill-box; transform-origin: center; animation: halo-breathe 7s ease-in-out infinite; }
   /* the faceted highlight — hard-edged, solid color, no blur — sits
      right on top of the core's own fill, same technique as the rest
@@ -488,32 +500,47 @@
 
     const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
 
-    // the Portfolio hero is a faceted crystalline gem rather than a
-    // planet — six triangular facets radiating from center, each a
-    // distinct flat tone, no ring/bands/moon, fitting a photography
-    // page's "cut gem catching light" identity
-    const facetTones = [0.55, -0.25, 0.3, -0.35, 0.15, -0.1]; // positive = lighten, negative = darken
-    const facetAngles = [0, 60, 120, 180, 240, 300, 360];
-    const facetPoints = facetAngles.map(a => {
-      const rad = a * Math.PI / 180;
-      return [19 * Math.cos(rad), 19 * Math.sin(rad)];
-    });
-    const facets = [];
-    for (let i = 0; i < 6; i++){
-      const [x1, y1] = facetPoints[i];
-      const [x2, y2] = facetPoints[i+1];
-      const tri = document.createElementNS(svgNS, 'path');
-      tri.setAttribute('d', `M0,0 L${x1.toFixed(2)},${y1.toFixed(2)} L${x2.toFixed(2)},${y2.toFixed(2)} Z`);
-      const amt = facetTones[i];
-      tri.setAttribute('fill', amt >= 0 ? lighten(youCoreHex, amt) : darken(youCoreHex, -amt));
-      tri.setAttribute('stroke', darken(youCoreHex, 0.15));
-      tri.setAttribute('stroke-width', '0.4');
-      facets.push(tri);
+    // the Portfolio hero is a camera aperture — overlapping curved
+    // blades forming a circular iris opening, like a lens diaphragm.
+    // Far more fitting for a photography page than a generic gem, and
+    // genuinely more detail: 9 overlapping blades plus a lens housing
+    // ring and a dark opening at the center.
+    const housingRing = document.createElementNS(svgNS, 'circle');
+    housingRing.setAttribute('r', 21.5);
+    housingRing.setAttribute('fill', 'none');
+    housingRing.setAttribute('stroke', darken(youCoreHex, 0.35));
+    housingRing.setAttribute('stroke-width', '2.4');
+
+    const bladeGroup = document.createElementNS(svgNS, 'g');
+    bladeGroup.setAttribute('class', 'aperture-blades');
+    const blades = [];
+    const bladeCount = 9;
+    for (let i = 0; i < bladeCount; i++){
+      const blade = document.createElementNS(svgNS, 'path');
+      // one blade: a curved wedge from near the rim sweeping in toward
+      // (but not reaching) the center, tip offset so overlapping blades
+      // leave a small rounded opening in the middle
+      blade.setAttribute('d', 'M19,0 Q15,7 6,6.5 Q3.2,3 3.6,0 Q3.2,-3 6,-6.5 Q15,-7 19,0 Z');
+      blade.setAttribute('transform', `rotate(${(360/bladeCount)*i})`);
+      blade.setAttribute('fill', i % 2 === 0 ? lighten(youCoreHex, 0.3) : darken(youCoreHex, 0.15));
+      blade.setAttribute('stroke', darken(youCoreHex, 0.3));
+      blade.setAttribute('stroke-width', '0.35');
+      blade.setAttribute('opacity', '0.92');
+      bladeGroup.appendChild(blade);
     }
+
+    const lensOpening = document.createElementNS(svgNS, 'circle');
+    lensOpening.setAttribute('r', 3.2);
+    lensOpening.setAttribute('fill', darken(youCoreHex, 0.55));
+
+    const lensGlint = document.createElementNS(svgNS, 'circle');
+    lensGlint.setAttribute('cx', -1); lensGlint.setAttribute('cy', -1);
+    lensGlint.setAttribute('r', 1.1);
+    lensGlint.setAttribute('fill', lighten(youCoreHex, 0.7));
+    lensGlint.setAttribute('opacity', '0.85');
 
     const core = document.createElementNS(svgNS, 'circle');
     core.setAttribute('r', 19); core.setAttribute('fill', 'none');
-    core.setAttribute('stroke', 'var(--you-shadow)'); core.setAttribute('stroke-width', '1.2');
     core.setAttribute('filter', 'url(#starglow)');
 
     const rim = document.createElementNS(svgNS, 'circle');
@@ -525,7 +552,10 @@
     label.textContent = 'Portfolio';
 
     svg.appendChild(haloOuter); svg.appendChild(haloInner);
-    facets.forEach(f => svg.appendChild(f));
+    svg.appendChild(housingRing);
+    svg.appendChild(bladeGroup);
+    svg.appendChild(lensOpening);
+    svg.appendChild(lensGlint);
     svg.appendChild(core); svg.appendChild(rim); svg.appendChild(label);
   })();
 

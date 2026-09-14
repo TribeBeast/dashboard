@@ -1011,6 +1011,24 @@
     craterB.setAttribute('opacity', '0.4');
     craterB.setAttribute('clip-path', 'url(#circleClip)');
 
+    // a small glint right on the crescent's lit edge, like light
+    // catching the curve of a pearl
+    const pearlGlint = document.createElementNS(svgNS, 'circle');
+    pearlGlint.setAttribute('cx', -9); pearlGlint.setAttribute('cy', -3);
+    pearlGlint.setAttribute('r', 1.6);
+    pearlGlint.setAttribute('fill', lighten(youCoreHex, 0.6));
+    pearlGlint.setAttribute('opacity', '0.8');
+    pearlGlint.setAttribute('clip-path', 'url(#circleClip)');
+
+    // a faint dotted luster ring — a soft halo suggesting pearl sheen
+    const lusterRing = document.createElementNS(svgNS, 'circle');
+    lusterRing.setAttribute('r', 25);
+    lusterRing.setAttribute('fill', 'none');
+    lusterRing.setAttribute('stroke', 'var(--you-glow)');
+    lusterRing.setAttribute('stroke-width', '0.6');
+    lusterRing.setAttribute('stroke-dasharray', '0.5,2.5');
+    lusterRing.setAttribute('opacity', '0.4');
+
     // one small, distant, pale moon in slow orbit
     const moonOrbit = document.createElementNS(svgNS, 'g');
     const moon = document.createElementNS(svgNS, 'circle');
@@ -1031,6 +1049,26 @@
       moonOrbit.appendChild(moonAnim);
     }
 
+    // a second, even smaller and closer moon
+    const moon2Orbit = document.createElementNS(svgNS, 'g');
+    const moon2 = document.createElementNS(svgNS, 'circle');
+    moon2.setAttribute('cx', -26); moon2.setAttribute('cy', 0);
+    moon2.setAttribute('r', 1.3);
+    moon2.setAttribute('fill', lighten(youCoreHex, 0.4));
+    moon2.setAttribute('stroke', darken(youCoreHex, 0.2));
+    moon2.setAttribute('stroke-width', '0.4');
+    moon2Orbit.appendChild(moon2);
+    if (!reduceMotion){
+      const moon2Anim = document.createElementNS(svgNS, 'animateTransform');
+      moon2Anim.setAttribute('attributeName', 'transform');
+      moon2Anim.setAttribute('type', 'rotate');
+      moon2Anim.setAttribute('from', '360 0 0');
+      moon2Anim.setAttribute('to', '0 0 0');
+      moon2Anim.setAttribute('dur', (10 + Math.random()*4).toFixed(1) + 's');
+      moon2Anim.setAttribute('repeatCount', 'indefinite');
+      moon2Orbit.appendChild(moon2Anim);
+    }
+
     const rim = document.createElementNS(svgNS, 'circle');
     rim.setAttribute('r', 19.5);
     rim.setAttribute('fill', 'none');
@@ -1045,11 +1083,14 @@
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
+    you.appendChild(lusterRing);
     you.appendChild(core);
     you.appendChild(phaseShadow);
     you.appendChild(craterA);
     you.appendChild(craterB);
+    you.appendChild(pearlGlint);
     you.appendChild(moonOrbit);
+    you.appendChild(moon2Orbit);
     you.appendChild(rim);
     you.appendChild(label);
     g.appendChild(you);

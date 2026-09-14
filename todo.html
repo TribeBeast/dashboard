@@ -1209,6 +1209,22 @@
     spot.setAttribute('opacity', '0.85');
     spot.setAttribute('clip-path', 'url(#circleClip)');
 
+    // a faint dashed "track" ring for each moon's orbit — reads like a
+    // checklist track, tying the three-moon idea to the page's purpose
+    function makeTrack(radius){
+      const track = document.createElementNS(svgNS, 'circle');
+      track.setAttribute('r', radius);
+      track.setAttribute('fill', 'none');
+      track.setAttribute('stroke', 'var(--you-glow)');
+      track.setAttribute('stroke-width', '0.6');
+      track.setAttribute('stroke-dasharray', '0.5,3');
+      track.setAttribute('opacity', '0.3');
+      return track;
+    }
+    const track1 = makeTrack(36);
+    const track2 = makeTrack(28);
+    const track3 = makeTrack(21);
+
     // three moons instead of one — one for each of the three orbiting
     // hubs (School, RA, Lab) this page ties together
     function makeMoon(radius, size, dur, reverse){
@@ -1254,6 +1270,9 @@
     you.appendChild(bandDark);
     you.appendChild(bandLight);
     you.appendChild(spot);
+    you.appendChild(track1);
+    you.appendChild(track2);
+    you.appendChild(track3);
     you.appendChild(moon1);
     you.appendChild(moon2);
     you.appendChild(moon3);

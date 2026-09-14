@@ -978,16 +978,9 @@
 
     const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
 
-    // a ring, drawn before the core so the core naturally occludes its
-    // middle section — reads as passing behind the planet on both sides
-    const ring = document.createElementNS(svgNS, 'ellipse');
-    ring.setAttribute('rx', 32); ring.setAttribute('ry', 8);
-    ring.setAttribute('transform', 'rotate(-16)');
-    ring.setAttribute('fill', 'none');
-    ring.setAttribute('stroke', 'var(--you-glow)');
-    ring.setAttribute('stroke-width', '1.8');
-    ring.setAttribute('opacity', '0.55');
-
+    // Photography is a pale pearl moon — no ring, no bands, just a
+    // smooth surface with a soft crescent phase-shadow and one or two
+    // faint craters, fitting the page's white/pearl palette
     const core = document.createElementNS(svgNS, 'circle');
     core.setAttribute('r', 19);
     core.setAttribute('fill', 'var(--you-core)');
@@ -995,40 +988,37 @@
     core.setAttribute('stroke-width', '1.2');
     core.setAttribute('filter', 'url(#starglow)');
 
-    // textured surface — a couple of organic bands and a small accent
-    // spot, clipped to the core's own circle, giving it a painted,
-    // planetary look instead of a single flat fill
-    const bandDark = document.createElementNS(svgNS, 'ellipse');
-    bandDark.setAttribute('cx', 2); bandDark.setAttribute('cy', 9);
-    bandDark.setAttribute('rx', 22); bandDark.setAttribute('ry', 7);
-    bandDark.setAttribute('transform', 'rotate(-9)');
-    bandDark.setAttribute('fill', darken(youCoreHex, 0.22));
-    bandDark.setAttribute('opacity', '0.75');
-    bandDark.setAttribute('clip-path', 'url(#circleClip)');
+    // a moon-phase crescent — an offset dark circle clipped to the
+    // core's own silhouette, leaving a lit crescent showing
+    const phaseShadow = document.createElementNS(svgNS, 'circle');
+    phaseShadow.setAttribute('cx', 9); phaseShadow.setAttribute('cy', 0);
+    phaseShadow.setAttribute('r', 17);
+    phaseShadow.setAttribute('fill', darken(youCoreHex, 0.3));
+    phaseShadow.setAttribute('opacity', '0.5');
+    phaseShadow.setAttribute('clip-path', 'url(#circleClip)');
 
-    const bandLight = document.createElementNS(svgNS, 'ellipse');
-    bandLight.setAttribute('cx', -4); bandLight.setAttribute('cy', -8);
-    bandLight.setAttribute('rx', 20); bandLight.setAttribute('ry', 6);
-    bandLight.setAttribute('transform', 'rotate(11)');
-    bandLight.setAttribute('fill', lighten(youCoreHex, 0.38));
-    bandLight.setAttribute('opacity', '0.8');
-    bandLight.setAttribute('clip-path', 'url(#circleClip)');
+    const craterA = document.createElementNS(svgNS, 'circle');
+    craterA.setAttribute('cx', -8); craterA.setAttribute('cy', -6);
+    craterA.setAttribute('r', 2.8);
+    craterA.setAttribute('fill', darken(youCoreHex, 0.14));
+    craterA.setAttribute('opacity', '0.4');
+    craterA.setAttribute('clip-path', 'url(#circleClip)');
 
-    const spot = document.createElementNS(svgNS, 'ellipse');
-    spot.setAttribute('cx', 6); spot.setAttribute('cy', 2);
-    spot.setAttribute('rx', 4); spot.setAttribute('ry', 2.6);
-    spot.setAttribute('fill', lighten(youCoreHex, 0.68));
-    spot.setAttribute('opacity', '0.85');
-    spot.setAttribute('clip-path', 'url(#circleClip)');
+    const craterB = document.createElementNS(svgNS, 'circle');
+    craterB.setAttribute('cx', -4); craterB.setAttribute('cy', 5);
+    craterB.setAttribute('r', 1.8);
+    craterB.setAttribute('fill', darken(youCoreHex, 0.14));
+    craterB.setAttribute('opacity', '0.4');
+    craterB.setAttribute('clip-path', 'url(#circleClip)');
 
-    // a small moon in continuous orbit — skipped for reduced motion
+    // one small, distant, pale moon in slow orbit
     const moonOrbit = document.createElementNS(svgNS, 'g');
     const moon = document.createElementNS(svgNS, 'circle');
-    moon.setAttribute('cx', 36); moon.setAttribute('cy', 0);
-    moon.setAttribute('r', 2.4);
-    moon.setAttribute('fill', lighten(youCoreHex, 0.55));
-    moon.setAttribute('stroke', darken(youCoreHex, 0.3));
-    moon.setAttribute('stroke-width', '0.6');
+    moon.setAttribute('cx', 40); moon.setAttribute('cy', 0);
+    moon.setAttribute('r', 1.9);
+    moon.setAttribute('fill', lighten(youCoreHex, 0.4));
+    moon.setAttribute('stroke', darken(youCoreHex, 0.2));
+    moon.setAttribute('stroke-width', '0.5');
     moonOrbit.appendChild(moon);
     if (!reduceMotion){
       const moonAnim = document.createElementNS(svgNS, 'animateTransform');
@@ -1036,7 +1026,7 @@
       moonAnim.setAttribute('type', 'rotate');
       moonAnim.setAttribute('from', '0 0 0');
       moonAnim.setAttribute('to', '360 0 0');
-      moonAnim.setAttribute('dur', (16 + Math.random()*6).toFixed(1) + 's');
+      moonAnim.setAttribute('dur', (20 + Math.random()*6).toFixed(1) + 's');
       moonAnim.setAttribute('repeatCount', 'indefinite');
       moonOrbit.appendChild(moonAnim);
     }
@@ -1055,11 +1045,10 @@
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
-    you.appendChild(ring);
     you.appendChild(core);
-    you.appendChild(bandDark);
-    you.appendChild(bandLight);
-    you.appendChild(spot);
+    you.appendChild(phaseShadow);
+    you.appendChild(craterA);
+    you.appendChild(craterB);
     you.appendChild(moonOrbit);
     you.appendChild(rim);
     you.appendChild(label);

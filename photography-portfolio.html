@@ -488,60 +488,33 @@
 
     const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
 
-    const ring = document.createElementNS(svgNS, 'ellipse');
-    ring.setAttribute('rx', 32); ring.setAttribute('ry', 8);
-    ring.setAttribute('transform', 'rotate(-16)');
-    ring.setAttribute('fill', 'none');
-    ring.setAttribute('stroke', 'var(--you-glow)');
-    ring.setAttribute('stroke-width', '1.8');
-    ring.setAttribute('opacity', '0.55');
+    // the Portfolio hero is a faceted crystalline gem rather than a
+    // planet — six triangular facets radiating from center, each a
+    // distinct flat tone, no ring/bands/moon, fitting a photography
+    // page's "cut gem catching light" identity
+    const facetTones = [0.55, -0.25, 0.3, -0.35, 0.15, -0.1]; // positive = lighten, negative = darken
+    const facetAngles = [0, 60, 120, 180, 240, 300, 360];
+    const facetPoints = facetAngles.map(a => {
+      const rad = a * Math.PI / 180;
+      return [19 * Math.cos(rad), 19 * Math.sin(rad)];
+    });
+    const facets = [];
+    for (let i = 0; i < 6; i++){
+      const [x1, y1] = facetPoints[i];
+      const [x2, y2] = facetPoints[i+1];
+      const tri = document.createElementNS(svgNS, 'path');
+      tri.setAttribute('d', `M0,0 L${x1.toFixed(2)},${y1.toFixed(2)} L${x2.toFixed(2)},${y2.toFixed(2)} Z`);
+      const amt = facetTones[i];
+      tri.setAttribute('fill', amt >= 0 ? lighten(youCoreHex, amt) : darken(youCoreHex, -amt));
+      tri.setAttribute('stroke', darken(youCoreHex, 0.15));
+      tri.setAttribute('stroke-width', '0.4');
+      facets.push(tri);
+    }
 
     const core = document.createElementNS(svgNS, 'circle');
-    core.setAttribute('r', 19); core.setAttribute('fill', 'var(--you-core)');
+    core.setAttribute('r', 19); core.setAttribute('fill', 'none');
     core.setAttribute('stroke', 'var(--you-shadow)'); core.setAttribute('stroke-width', '1.2');
     core.setAttribute('filter', 'url(#starglow)');
-
-    const bandDark = document.createElementNS(svgNS, 'ellipse');
-    bandDark.setAttribute('cx', 2); bandDark.setAttribute('cy', 9);
-    bandDark.setAttribute('rx', 22); bandDark.setAttribute('ry', 7);
-    bandDark.setAttribute('transform', 'rotate(-9)');
-    bandDark.setAttribute('fill', darken(youCoreHex, 0.22));
-    bandDark.setAttribute('opacity', '0.75');
-    bandDark.setAttribute('clip-path', 'url(#circleClip)');
-
-    const bandLight = document.createElementNS(svgNS, 'ellipse');
-    bandLight.setAttribute('cx', -4); bandLight.setAttribute('cy', -8);
-    bandLight.setAttribute('rx', 20); bandLight.setAttribute('ry', 6);
-    bandLight.setAttribute('transform', 'rotate(11)');
-    bandLight.setAttribute('fill', lighten(youCoreHex, 0.38));
-    bandLight.setAttribute('opacity', '0.8');
-    bandLight.setAttribute('clip-path', 'url(#circleClip)');
-
-    const spot = document.createElementNS(svgNS, 'ellipse');
-    spot.setAttribute('cx', 6); spot.setAttribute('cy', 2);
-    spot.setAttribute('rx', 4); spot.setAttribute('ry', 2.6);
-    spot.setAttribute('fill', lighten(youCoreHex, 0.68));
-    spot.setAttribute('opacity', '0.85');
-    spot.setAttribute('clip-path', 'url(#circleClip)');
-
-    const moonOrbit = document.createElementNS(svgNS, 'g');
-    const moon = document.createElementNS(svgNS, 'circle');
-    moon.setAttribute('cx', 36); moon.setAttribute('cy', 0);
-    moon.setAttribute('r', 2.4);
-    moon.setAttribute('fill', lighten(youCoreHex, 0.55));
-    moon.setAttribute('stroke', darken(youCoreHex, 0.3));
-    moon.setAttribute('stroke-width', '0.6');
-    moonOrbit.appendChild(moon);
-    if (!reduceMotion){
-      const moonAnim = document.createElementNS(svgNS, 'animateTransform');
-      moonAnim.setAttribute('attributeName', 'transform');
-      moonAnim.setAttribute('type', 'rotate');
-      moonAnim.setAttribute('from', '0 0 0');
-      moonAnim.setAttribute('to', '360 0 0');
-      moonAnim.setAttribute('dur', (16 + Math.random()*6).toFixed(1) + 's');
-      moonAnim.setAttribute('repeatCount', 'indefinite');
-      moonOrbit.appendChild(moonAnim);
-    }
 
     const rim = document.createElementNS(svgNS, 'circle');
     rim.setAttribute('r', 19.5); rim.setAttribute('fill', 'none');
@@ -551,9 +524,9 @@
     label.setAttribute('class', 'you-label'); label.setAttribute('y', 44);
     label.textContent = 'Portfolio';
 
-    svg.appendChild(haloOuter); svg.appendChild(haloInner); svg.appendChild(ring); svg.appendChild(core);
-    svg.appendChild(bandDark); svg.appendChild(bandLight); svg.appendChild(spot);
-    svg.appendChild(moonOrbit); svg.appendChild(rim); svg.appendChild(label);
+    svg.appendChild(haloOuter); svg.appendChild(haloInner);
+    facets.forEach(f => svg.appendChild(f));
+    svg.appendChild(core); svg.appendChild(rim); svg.appendChild(label);
   })();
 
   document.getElementById('portfolio-hero').addEventListener('click', goToPhotography);

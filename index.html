@@ -327,6 +327,18 @@
     text-anchor: middle;
   }
   .you-node{ cursor: default; }
+  .sun-rays{
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: sun-spin 90s linear infinite;
+  }
+  @keyframes sun-spin{
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .sun-rays{ animation: none; }
+  }
   .you-halo{
     transform-box: fill-box;
     transform-origin: center;
@@ -980,15 +992,22 @@
 
     const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
 
-    // a ring, drawn before the core so the core naturally occludes its
-    // middle section — reads as passing behind the planet on both sides
-    const ring = document.createElementNS(svgNS, 'ellipse');
-    ring.setAttribute('rx', 32); ring.setAttribute('ry', 8);
-    ring.setAttribute('transform', 'rotate(-16)');
-    ring.setAttribute('fill', 'none');
-    ring.setAttribute('stroke', 'var(--you-glow)');
-    ring.setAttribute('stroke-width', '1.8');
-    ring.setAttribute('opacity', '0.55');
+    // Home is the true center of everything, so it gets a sun rather
+    // than a planet — radiating rays instead of rings/bands, nothing
+    // orbiting it, since everything else orbits IT conceptually
+    const sunRays = document.createElementNS(svgNS, 'g');
+    sunRays.setAttribute('class', 'sun-rays');
+    const rayAngles = [0, 45, 90, 135, 180, 225, 270, 315];
+    rayAngles.forEach((deg, i) => {
+      const ray = document.createElementNS(svgNS, 'path');
+      const len = i % 2 === 0 ? 30 : 24;
+      ray.setAttribute('d', `M0,-3 L0,-${len} L0,-3`);
+      ray.setAttribute('d', `M-1.6,-6 L0,-${len} L1.6,-6 Z`);
+      ray.setAttribute('transform', `rotate(${deg})`);
+      ray.setAttribute('fill', lighten(youCoreHex, i % 2 === 0 ? 0.15 : 0.4));
+      ray.setAttribute('opacity', i % 2 === 0 ? '0.85' : '0.6');
+      sunRays.appendChild(ray);
+    });
 
     const core = document.createElementNS(svgNS, 'circle');
     core.setAttribute('r', 19);
@@ -997,51 +1016,14 @@
     core.setAttribute('stroke-width', '1.2');
     core.setAttribute('filter', 'url(#starglow)');
 
-    // textured surface — a couple of organic bands and a small accent
-    // spot, clipped to the core's own circle, giving it a painted,
-    // planetary look instead of a single flat fill
-    const bandDark = document.createElementNS(svgNS, 'ellipse');
-    bandDark.setAttribute('cx', 2); bandDark.setAttribute('cy', 9);
-    bandDark.setAttribute('rx', 22); bandDark.setAttribute('ry', 7);
-    bandDark.setAttribute('transform', 'rotate(-9)');
-    bandDark.setAttribute('fill', darken(youCoreHex, 0.22));
-    bandDark.setAttribute('opacity', '0.75');
-    bandDark.setAttribute('clip-path', 'url(#circleClip)');
-
-    const bandLight = document.createElementNS(svgNS, 'ellipse');
-    bandLight.setAttribute('cx', -4); bandLight.setAttribute('cy', -8);
-    bandLight.setAttribute('rx', 20); bandLight.setAttribute('ry', 6);
-    bandLight.setAttribute('transform', 'rotate(11)');
-    bandLight.setAttribute('fill', lighten(youCoreHex, 0.38));
-    bandLight.setAttribute('opacity', '0.8');
-    bandLight.setAttribute('clip-path', 'url(#circleClip)');
-
-    const spot = document.createElementNS(svgNS, 'ellipse');
-    spot.setAttribute('cx', 6); spot.setAttribute('cy', 2);
-    spot.setAttribute('rx', 4); spot.setAttribute('ry', 2.6);
-    spot.setAttribute('fill', lighten(youCoreHex, 0.68));
-    spot.setAttribute('opacity', '0.85');
-    spot.setAttribute('clip-path', 'url(#circleClip)');
-
-    // a small moon in continuous orbit — skipped for reduced motion
-    const moonOrbit = document.createElementNS(svgNS, 'g');
-    const moon = document.createElementNS(svgNS, 'circle');
-    moon.setAttribute('cx', 36); moon.setAttribute('cy', 0);
-    moon.setAttribute('r', 2.4);
-    moon.setAttribute('fill', lighten(youCoreHex, 0.55));
-    moon.setAttribute('stroke', darken(youCoreHex, 0.3));
-    moon.setAttribute('stroke-width', '0.6');
-    moonOrbit.appendChild(moon);
-    if (!reduceMotion){
-      const moonAnim = document.createElementNS(svgNS, 'animateTransform');
-      moonAnim.setAttribute('attributeName', 'transform');
-      moonAnim.setAttribute('type', 'rotate');
-      moonAnim.setAttribute('from', '0 0 0');
-      moonAnim.setAttribute('to', '360 0 0');
-      moonAnim.setAttribute('dur', (16 + Math.random()*6).toFixed(1) + 's');
-      moonAnim.setAttribute('repeatCount', 'indefinite');
-      moonOrbit.appendChild(moonAnim);
-    }
+    // a warm, smooth gradient-free glow patch instead of bands — the
+    // sun stays luminous and even rather than mottled/textured
+    const flare = document.createElementNS(svgNS, 'ellipse');
+    flare.setAttribute('cx', -5); flare.setAttribute('cy', -6);
+    flare.setAttribute('rx', 10); flare.setAttribute('ry', 8);
+    flare.setAttribute('fill', lighten(youCoreHex, 0.55));
+    flare.setAttribute('opacity', '0.7');
+    flare.setAttribute('clip-path', 'url(#circleClip)');
 
     const rim = document.createElementNS(svgNS, 'circle');
     rim.setAttribute('r', 19.5);
@@ -1057,12 +1039,9 @@
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
-    you.appendChild(ring);
+    you.appendChild(sunRays);
     you.appendChild(core);
-    you.appendChild(bandDark);
-    you.appendChild(bandLight);
-    you.appendChild(spot);
-    you.appendChild(moonOrbit);
+    you.appendChild(flare);
     you.appendChild(rim);
     you.appendChild(label);
     g.appendChild(you);

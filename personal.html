@@ -980,16 +980,9 @@
 
     const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
 
-    // a ring, drawn before the core so the core naturally occludes its
-    // middle section — reads as passing behind the planet on both sides
-    const ring = document.createElementNS(svgNS, 'ellipse');
-    ring.setAttribute('rx', 32); ring.setAttribute('ry', 8);
-    ring.setAttribute('transform', 'rotate(-16)');
-    ring.setAttribute('fill', 'none');
-    ring.setAttribute('stroke', 'var(--you-glow)');
-    ring.setAttribute('stroke-width', '1.8');
-    ring.setAttribute('opacity', '0.55');
-
+    // Personal is a small cratered moon rather than a ringed planet —
+    // no ring, round craters instead of bands, and tiny sparkle
+    // companions drifting nearby instead of a plain orbiting moon
     const core = document.createElementNS(svgNS, 'circle');
     core.setAttribute('r', 19);
     core.setAttribute('fill', 'var(--you-core)');
@@ -997,51 +990,50 @@
     core.setAttribute('stroke-width', '1.2');
     core.setAttribute('filter', 'url(#starglow)');
 
-    // textured surface — a couple of organic bands and a small accent
-    // spot, clipped to the core's own circle, giving it a painted,
-    // planetary look instead of a single flat fill
-    const bandDark = document.createElementNS(svgNS, 'ellipse');
-    bandDark.setAttribute('cx', 2); bandDark.setAttribute('cy', 9);
-    bandDark.setAttribute('rx', 22); bandDark.setAttribute('ry', 7);
-    bandDark.setAttribute('transform', 'rotate(-9)');
-    bandDark.setAttribute('fill', darken(youCoreHex, 0.22));
-    bandDark.setAttribute('opacity', '0.75');
-    bandDark.setAttribute('clip-path', 'url(#circleClip)');
+    const craterSpots = [
+      { cx: -6, cy: -5, r: 5.5 },
+      { cx: 7, cy: 3, r: 4 },
+      { cx: -2, cy: 9, r: 3.2 },
+      { cx: 9, cy: -8, r: 2.6 },
+    ];
+    const craters = craterSpots.map(c => {
+      const crater = document.createElementNS(svgNS, 'circle');
+      crater.setAttribute('cx', c.cx); crater.setAttribute('cy', c.cy);
+      crater.setAttribute('r', c.r);
+      crater.setAttribute('fill', darken(youCoreHex, 0.18));
+      crater.setAttribute('opacity', '0.55');
+      crater.setAttribute('clip-path', 'url(#circleClip)');
+      return crater;
+    });
+    const shine = document.createElementNS(svgNS, 'ellipse');
+    shine.setAttribute('cx', -8); shine.setAttribute('cy', -9);
+    shine.setAttribute('rx', 6); shine.setAttribute('ry', 4.5);
+    shine.setAttribute('fill', lighten(youCoreHex, 0.45));
+    shine.setAttribute('opacity', '0.65');
+    shine.setAttribute('clip-path', 'url(#circleClip)');
 
-    const bandLight = document.createElementNS(svgNS, 'ellipse');
-    bandLight.setAttribute('cx', -4); bandLight.setAttribute('cy', -8);
-    bandLight.setAttribute('rx', 20); bandLight.setAttribute('ry', 6);
-    bandLight.setAttribute('transform', 'rotate(11)');
-    bandLight.setAttribute('fill', lighten(youCoreHex, 0.38));
-    bandLight.setAttribute('opacity', '0.8');
-    bandLight.setAttribute('clip-path', 'url(#circleClip)');
-
-    const spot = document.createElementNS(svgNS, 'ellipse');
-    spot.setAttribute('cx', 6); spot.setAttribute('cy', 2);
-    spot.setAttribute('rx', 4); spot.setAttribute('ry', 2.6);
-    spot.setAttribute('fill', lighten(youCoreHex, 0.68));
-    spot.setAttribute('opacity', '0.85');
-    spot.setAttribute('clip-path', 'url(#circleClip)');
-
-    // a small moon in continuous orbit — skipped for reduced motion
-    const moonOrbit = document.createElementNS(svgNS, 'g');
-    const moon = document.createElementNS(svgNS, 'circle');
-    moon.setAttribute('cx', 36); moon.setAttribute('cy', 0);
-    moon.setAttribute('r', 2.4);
-    moon.setAttribute('fill', lighten(youCoreHex, 0.55));
-    moon.setAttribute('stroke', darken(youCoreHex, 0.3));
-    moon.setAttribute('stroke-width', '0.6');
-    moonOrbit.appendChild(moon);
-    if (!reduceMotion){
-      const moonAnim = document.createElementNS(svgNS, 'animateTransform');
-      moonAnim.setAttribute('attributeName', 'transform');
-      moonAnim.setAttribute('type', 'rotate');
-      moonAnim.setAttribute('from', '0 0 0');
-      moonAnim.setAttribute('to', '360 0 0');
-      moonAnim.setAttribute('dur', (16 + Math.random()*6).toFixed(1) + 's');
-      moonAnim.setAttribute('repeatCount', 'indefinite');
-      moonOrbit.appendChild(moonAnim);
+    // two tiny sparkle companions, each on their own slow orbit
+    function makeSparkleCompanion(radius, dur, size){
+      const wrap = document.createElementNS(svgNS, 'g');
+      const spark = document.createElementNS(svgNS, 'path');
+      spark.setAttribute('d', `M0,-${size} L${size*0.16},-${size*0.16} L${size},0 L${size*0.16},${size*0.16} L0,${size} L-${size*0.16},${size*0.16} L-${size},0 L-${size*0.16},-${size*0.16} Z`);
+      spark.setAttribute('fill', lighten(youCoreHex, 0.6));
+      spark.setAttribute('transform', `translate(${radius},0)`);
+      wrap.appendChild(spark);
+      if (!reduceMotion){
+        const anim = document.createElementNS(svgNS, 'animateTransform');
+        anim.setAttribute('attributeName', 'transform');
+        anim.setAttribute('type', 'rotate');
+        anim.setAttribute('from', '0 0 0');
+        anim.setAttribute('to', '360 0 0');
+        anim.setAttribute('dur', dur + 's');
+        anim.setAttribute('repeatCount', 'indefinite');
+        wrap.appendChild(anim);
+      }
+      return wrap;
     }
+    const sparkle1 = makeSparkleCompanion(32, (13 + Math.random()*4).toFixed(1), 3);
+    const sparkle2 = makeSparkleCompanion(24, (9 + Math.random()*3).toFixed(1), 2.2);
 
     const rim = document.createElementNS(svgNS, 'circle');
     rim.setAttribute('r', 19.5);
@@ -1057,12 +1049,11 @@
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
-    you.appendChild(ring);
     you.appendChild(core);
-    you.appendChild(bandDark);
-    you.appendChild(bandLight);
-    you.appendChild(spot);
-    you.appendChild(moonOrbit);
+    craters.forEach(c => you.appendChild(c));
+    you.appendChild(shine);
+    you.appendChild(sparkle1);
+    you.appendChild(sparkle2);
     you.appendChild(rim);
     you.appendChild(label);
     g.appendChild(you);

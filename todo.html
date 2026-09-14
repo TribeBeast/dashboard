@@ -1176,16 +1176,6 @@
 
     const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
 
-    // a ring, drawn before the core so the core naturally occludes its
-    // middle section — reads as passing behind the planet on both sides
-    const ring = document.createElementNS(svgNS, 'ellipse');
-    ring.setAttribute('rx', 32); ring.setAttribute('ry', 8);
-    ring.setAttribute('transform', 'rotate(-16)');
-    ring.setAttribute('fill', 'none');
-    ring.setAttribute('stroke', 'var(--you-glow)');
-    ring.setAttribute('stroke-width', '1.8');
-    ring.setAttribute('opacity', '0.55');
-
     const core = document.createElementNS(svgNS, 'circle');
     core.setAttribute('r', 19);
     core.setAttribute('fill', 'var(--you-core)');
@@ -1219,25 +1209,32 @@
     spot.setAttribute('opacity', '0.85');
     spot.setAttribute('clip-path', 'url(#circleClip)');
 
-    // a small moon in continuous orbit — skipped for reduced motion
-    const moonOrbit = document.createElementNS(svgNS, 'g');
-    const moon = document.createElementNS(svgNS, 'circle');
-    moon.setAttribute('cx', 36); moon.setAttribute('cy', 0);
-    moon.setAttribute('r', 2.4);
-    moon.setAttribute('fill', lighten(youCoreHex, 0.55));
-    moon.setAttribute('stroke', darken(youCoreHex, 0.3));
-    moon.setAttribute('stroke-width', '0.6');
-    moonOrbit.appendChild(moon);
-    if (!reduceMotion){
-      const moonAnim = document.createElementNS(svgNS, 'animateTransform');
-      moonAnim.setAttribute('attributeName', 'transform');
-      moonAnim.setAttribute('type', 'rotate');
-      moonAnim.setAttribute('from', '0 0 0');
-      moonAnim.setAttribute('to', '360 0 0');
-      moonAnim.setAttribute('dur', (16 + Math.random()*6).toFixed(1) + 's');
-      moonAnim.setAttribute('repeatCount', 'indefinite');
-      moonOrbit.appendChild(moonAnim);
+    // three moons instead of one — one for each of the three orbiting
+    // hubs (School, RA, Lab) this page ties together
+    function makeMoon(radius, size, dur, reverse){
+      const wrap = document.createElementNS(svgNS, 'g');
+      const m = document.createElementNS(svgNS, 'circle');
+      m.setAttribute('cx', radius); m.setAttribute('cy', 0);
+      m.setAttribute('r', size);
+      m.setAttribute('fill', lighten(youCoreHex, 0.55));
+      m.setAttribute('stroke', darken(youCoreHex, 0.3));
+      m.setAttribute('stroke-width', '0.5');
+      wrap.appendChild(m);
+      if (!reduceMotion){
+        const anim = document.createElementNS(svgNS, 'animateTransform');
+        anim.setAttribute('attributeName', 'transform');
+        anim.setAttribute('type', 'rotate');
+        anim.setAttribute('from', reverse ? '360 0 0' : '0 0 0');
+        anim.setAttribute('to', reverse ? '0 0 0' : '360 0 0');
+        anim.setAttribute('dur', dur + 's');
+        anim.setAttribute('repeatCount', 'indefinite');
+        wrap.appendChild(anim);
+      }
+      return wrap;
     }
+    const moon1 = makeMoon(36, 2.3, (16 + Math.random()*5).toFixed(1), false);
+    const moon2 = makeMoon(28, 1.8, (11 + Math.random()*4).toFixed(1), true);
+    const moon3 = makeMoon(21, 1.4, (8 + Math.random()*3).toFixed(1), false);
 
     const rim = document.createElementNS(svgNS, 'circle');
     rim.setAttribute('r', 19.5);
@@ -1253,12 +1250,13 @@
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
-    you.appendChild(ring);
     you.appendChild(core);
     you.appendChild(bandDark);
     you.appendChild(bandLight);
     you.appendChild(spot);
-    you.appendChild(moonOrbit);
+    you.appendChild(moon1);
+    you.appendChild(moon2);
+    you.appendChild(moon3);
     you.appendChild(rim);
     you.appendChild(label);
     g.appendChild(you);

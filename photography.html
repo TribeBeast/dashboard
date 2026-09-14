@@ -23,8 +23,15 @@
     --you-shadow: #B9B2A0;
   }
   *{ box-sizing: border-box; }
+  html{
+    /* iOS specifically paints the zoomed-out / overscroll area using
+       this element's solid background-color (a gradient here won't do
+       it) — this is what stops white from showing when pinch-zoom
+       can't be fully prevented */
+    background-color: var(--bg-deep);
+  }
   html, body{
-    margin:0; padding:0; height:100%;
+    margin:0; padding:0; height:100%; min-height: 100%;
     background: radial-gradient(ellipse at 50% 40%, var(--bg-mid) 0%, var(--bg-deep) 70%);
     color: var(--text);
     font-family: 'Inter', sans-serif;

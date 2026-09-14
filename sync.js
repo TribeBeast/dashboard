@@ -20,13 +20,23 @@ const SiteSync = (() => {
   }
 
   async function call(key, action, value) {
-    const res = await fetch(SYNC_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ siteKey: SITE_KEY, key, value, action }),
-    });
-    if (!res.ok) throw new Error('sync request failed: ' + res.status);
-    return res.json();
+    // a hard timeout so a slow/unreachable Worker can never hang the
+    // page — the page always falls back to local data promptly instead
+    // of waiting indefinitely on the network
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    try {
+      const res = await fetch(SYNC_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteKey: SITE_KEY, key, value, action }),
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error('sync request failed: ' + res.status);
+      return res.json();
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   return {
@@ -64,8 +74,25 @@ const SiteSync = (() => {
 
       if (!enabled()) return local;
 
-      let localTs = 0;
-      try { localTs = Number(localStorage.getItem(localKey + '__ts') || 0); } catch (e) {}
+      let localTsRaw = null;
+      try { localTsRaw = localStorage.getItem(localKey + '__ts'); } catch (e) {}
+      const hasLocalData = local !== null && local !== undefined &&
+        !(isJSON && Array.isArray(local) && local.length === 0);
+
+      // Real local data that predates this sync system (or this device's
+      // first sync) has no recorded timestamp. Treating that as "oldest"
+      // is what caused real data to be silently overwritten by whatever
+      // was sitting in the cloud — instead, the first time a device with
+      // untimestamped-but-real data checks in, its local copy is treated
+      // as authoritative and PUSHED to the cloud, not pulled over.
+      if (hasLocalData && localTsRaw === null) {
+        const ts = Date.now();
+        try { localStorage.setItem(localKey + '__ts', String(ts)); } catch (e) {}
+        call(localKey, 'set', local).catch(() => {});
+        return local;
+      }
+
+      const localTs = Number(localTsRaw || 0);
 
       try {
         const res = await call(localKey, 'get');

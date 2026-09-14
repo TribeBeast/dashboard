@@ -101,6 +101,8 @@
   #portfolio-hero{
     position: fixed; top: 7%; left: 50%; transform: translateX(-50%);
     z-index: 4; text-align: center; cursor: pointer;
+    opacity: 0;
+    transition: opacity 700ms ease;
   }
   #hero-svg{ width: 170px; height: 170px; overflow: visible; display: block; }
   .you-halo{ transform-box: fill-box; transform-origin: center; animation: halo-breathe 7s ease-in-out infinite; }
@@ -113,6 +115,8 @@
   .belt-wrap{
     position: fixed; left: 0; right: 0; height: 220px;
     overflow: hidden; z-index: 2;
+    opacity: 0;
+    transition: opacity 700ms ease;
   }
   #belt-wrap-top{ top: 24%; }
   #belt-wrap-mid{ top: 48%; }
@@ -658,6 +662,15 @@
   });
   requestAnimationFrame(beltFrame);
   window.addEventListener('resize', () => BELT_TRACK_IDS.forEach(measureBelt));
+
+  // fade the hero and belts in, rather than them popping in the instant
+  // they finish rendering
+  const fadeTargets = [document.getElementById('portfolio-hero'), ...document.querySelectorAll('.belt-wrap')];
+  if (reduceMotion){
+    fadeTargets.forEach(el => { if (el) el.style.opacity = '1'; });
+  } else {
+    setTimeout(() => fadeTargets.forEach(el => { if (el) el.style.opacity = '1'; }), 60);
+  }
 
   // check the cloud for a fresher copy (e.g. a photo added on another
   // device) after the initial local render, so the page never sits

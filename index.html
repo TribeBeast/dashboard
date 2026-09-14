@@ -188,7 +188,15 @@
   button:hover{ border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.08); }
   button:focus-visible{ outline: 2px solid var(--c-projects); outline-offset: 2px; }
 
-  svg#graph{ width: 100vw; height: 100vh; display:block; cursor: grab; position: relative; z-index: 1; user-select: none; -webkit-user-select: none; }
+  svg#graph{
+    width: 100vw; height: 100vh; display:block; cursor: grab; position: relative; z-index: 1;
+    user-select: none; -webkit-user-select: none;
+    /* the whole graph fades in on arrival instead of popping in the
+       instant its elements finish building — toggled to opacity 1 a
+       beat after buildScene()/relayout() run */
+    opacity: 0;
+    transition: opacity 700ms ease;
+  }
   svg#graph.dragging{ cursor: grabbing; }
 
   .node-label{
@@ -494,6 +502,7 @@
     social:   { label: 'Work',   hex: '#34D5C5' },
     projects: { label: 'Personal', hex: '#FF8A3D' },
     other:    { label: 'Photography', hex: '#F2F0EA' },
+    todo:     { label: 'To-do', hex: '#2ECC71' },
   };
 
   const DEFAULT_NODES = [
@@ -501,6 +510,7 @@
     { id: 'n2', name: 'Work',   url: 'work.html',   category: 'social' },
     { id: 'n3', name: 'Personal', url: 'personal.html', category: 'projects' },
     { id: 'n4', name: 'Photography', url: 'photography.html', category: 'other' },
+    { id: 'n5', name: 'To-do', url: 'todo.html', category: 'todo' },
   ];
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -767,8 +777,8 @@
   }
 
   // ---------- layout ----------
-  const RING_RADIUS = { apps: 160, social: 200, projects: 140, other: 220 };
-  const CAT_ANGLE_OFFSET = { apps: 205, social: 15, projects: 100, other: 295 };
+  const RING_RADIUS = { apps: 160, social: 200, projects: 140, other: 220, todo: 180 };
+  const CAT_ANGLE_OFFSET = { apps: 205, social: 15, projects: 100, other: 295, todo: 55 };
 
   // stable pseudo-random 0..1 from a string, so the "natural" jitter
   // stays put across relayouts instead of reshuffling every time
@@ -1319,6 +1329,14 @@
     await SiteSync.loadFreshest('gcal-config', true);
     buildScene();
     relayout();
+    // fade the whole graph in, rather than it popping in the instant
+    // buildScene() finishes — respects reduced-motion by skipping
+    // straight to visible instead of animating
+    if (reduceMotion){
+      svg.style.opacity = '1';
+    } else {
+      setTimeout(() => { svg.style.opacity = '1'; }, 60);
+    }
     initGcalUI();
   })();
 })();

@@ -508,34 +508,51 @@
     const housingRing = document.createElementNS(svgNS, 'circle');
     housingRing.setAttribute('r', 21.5);
     housingRing.setAttribute('fill', 'none');
-    housingRing.setAttribute('stroke', darken(youCoreHex, 0.35));
-    housingRing.setAttribute('stroke-width', '2.4');
+    housingRing.setAttribute('stroke', darken(youCoreHex, 0.22));
+    housingRing.setAttribute('stroke-width', '3');
+
+    // a thin inner ring, just inside the housing — a real lens barrel
+    // usually shows two concentric edges, not just one
+    const housingRingInner = document.createElementNS(svgNS, 'circle');
+    housingRingInner.setAttribute('r', 20);
+    housingRingInner.setAttribute('fill', 'none');
+    housingRingInner.setAttribute('stroke', darken(youCoreHex, 0.12));
+    housingRingInner.setAttribute('stroke-width', '0.8');
+
+    // a solid backing disc behind the blades, sized to reach the
+    // housing ring — guarantees no visible gap between the blade tips
+    // and the ring regardless of the blade shapes' exact geometry
+    const bladeBacking = document.createElementNS(svgNS, 'circle');
+    bladeBacking.setAttribute('r', 20.5);
+    bladeBacking.setAttribute('fill', darken(youCoreHex, 0.12));
 
     const bladeGroup = document.createElementNS(svgNS, 'g');
     bladeGroup.setAttribute('class', 'aperture-blades');
     const blades = [];
-    const bladeCount = 9;
+    const bladeCount = 8;
     for (let i = 0; i < bladeCount; i++){
       const blade = document.createElementNS(svgNS, 'path');
-      // one blade: a curved wedge from near the rim sweeping in toward
-      // (but not reaching) the center, tip offset so overlapping blades
-      // leave a small rounded opening in the middle
-      blade.setAttribute('d', 'M19,0 Q15,7 6,6.5 Q3.2,3 3.6,0 Q3.2,-3 6,-6.5 Q15,-7 19,0 Z');
+      // a curved sickle blade — matches a real aperture/shutter's blade
+      // shape: a rounded outer edge, then a smooth sweeping curve in
+      // toward an off-center point near the middle, and back. All
+      // blades share close to the same dark tone, like real metal
+      // vanes, rather than alternating contrasting colors. Outer edge
+      // reaches close to the housing ring so there's no visible gap.
+      blade.setAttribute('d', 'M20.5,-4 Q16,-7.5 9,-11 Q10,-2 15,7 Q19,2.5 20.5,-4 Z');
       blade.setAttribute('transform', `rotate(${(360/bladeCount)*i})`);
-      blade.setAttribute('fill', i % 2 === 0 ? lighten(youCoreHex, 0.3) : darken(youCoreHex, 0.15));
-      blade.setAttribute('stroke', darken(youCoreHex, 0.3));
-      blade.setAttribute('stroke-width', '0.35');
-      blade.setAttribute('opacity', '0.92');
+      blade.setAttribute('fill', i % 2 === 0 ? '#FFFFFF' : darken(youCoreHex, 0.1));
+      blade.setAttribute('stroke', darken(youCoreHex, 0.25));
+      blade.setAttribute('stroke-width', '0.4');
       bladeGroup.appendChild(blade);
     }
 
     const lensOpening = document.createElementNS(svgNS, 'circle');
-    lensOpening.setAttribute('r', 3.2);
+    lensOpening.setAttribute('r', 7);
     lensOpening.setAttribute('fill', darken(youCoreHex, 0.55));
 
     const lensGlint = document.createElementNS(svgNS, 'circle');
-    lensGlint.setAttribute('cx', -1); lensGlint.setAttribute('cy', -1);
-    lensGlint.setAttribute('r', 1.1);
+    lensGlint.setAttribute('cx', -2); lensGlint.setAttribute('cy', -2);
+    lensGlint.setAttribute('r', 2);
     lensGlint.setAttribute('fill', lighten(youCoreHex, 0.7));
     lensGlint.setAttribute('opacity', '0.85');
 
@@ -553,6 +570,8 @@
 
     svg.appendChild(haloOuter); svg.appendChild(haloInner);
     svg.appendChild(housingRing);
+    svg.appendChild(housingRingInner);
+    svg.appendChild(bladeBacking);
     svg.appendChild(bladeGroup);
     svg.appendChild(lensOpening);
     svg.appendChild(lensGlint);

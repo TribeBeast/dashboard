@@ -978,60 +978,48 @@
 
     const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
 
-    // Photography is a total solar eclipse — a dark disc blocking the
-    // core, with bright corona rays visible around its rim and a single
-    // "diamond ring" glint where the last light escapes. A dramatic,
-    // classic photography subject, not another moon variant.
-    const coronaRays = document.createElementNS(svgNS, 'g');
-    const rayAngles = [0, 24, 48, 72, 96, 120, 144, 168, 192, 216, 240, 264, 288, 312, 336, 360];
-    rayAngles.forEach((deg, i) => {
-      const ray = document.createElementNS(svgNS, 'path');
-      const len = i % 3 === 0 ? 36 : (i % 3 === 1 ? 29 : 24);
-      const w = i % 3 === 0 ? 1.3 : 0.8;
-      ray.setAttribute('d', `M-${w},-16 L0,-${len} L${w},-16 Z`);
-      ray.setAttribute('transform', `rotate(${deg})`);
-      ray.setAttribute('fill', lighten(youCoreHex, 0.5));
-      ray.setAttribute('opacity', i % 3 === 0 ? '0.75' : '0.45');
-      coronaRays.appendChild(ray);
-    });
+    // Photography is a small fanned stack of white-bordered photo
+    // prints — directly about photography itself (the prints it
+    // produces), genuinely white/pale to match the page, and distinct
+    // from both Home's sun and Portfolio's camera. Every shape here is
+    // part of an actual print (card, photo area, border) — nothing
+    // decorative just floating on its own.
+    function makePrint(x, y, rot, w, h, bottomBorder){
+      const wrap = document.createElementNS(svgNS, 'g');
+      wrap.setAttribute('transform', `translate(${x},${y}) rotate(${rot})`);
 
-    // the eclipsed disc itself, dark, sitting on top of the corona rays
-    // so only their outer tips show past its edge
-    const darkDisc = document.createElementNS(svgNS, 'circle');
-    darkDisc.setAttribute('r', 19);
-    darkDisc.setAttribute('fill', darken(youCoreHex, 0.7));
-    darkDisc.setAttribute('stroke', darken(youCoreHex, 0.85));
-    darkDisc.setAttribute('stroke-width', '1');
-    darkDisc.setAttribute('filter', 'url(#starglow)');
+      const card = document.createElementNS(svgNS, 'rect');
+      card.setAttribute('x', -w/2); card.setAttribute('y', -h/2);
+      card.setAttribute('width', w); card.setAttribute('height', h);
+      card.setAttribute('rx', 0.6);
+      card.setAttribute('fill', '#FFFFFF');
+      card.setAttribute('stroke', darken(youCoreHex, 0.3));
+      card.setAttribute('stroke-width', '0.5');
+      wrap.appendChild(card);
 
-    // the "diamond ring" — a single bright point right at the disc's
-    // rim, like the last bead of sunlight before totality
-    const diamondRing = document.createElementNS(svgNS, 'circle');
-    diamondRing.setAttribute('cx', 18.5); diamondRing.setAttribute('cy', -5);
-    diamondRing.setAttribute('r', 2.4);
-    diamondRing.setAttribute('fill', lighten(youCoreHex, 0.75));
+      // the photo area, leaving a white border on all sides and a
+      // wider one at the bottom — the classic instant-print look
+      const photoH = h - bottomBorder - 3;
+      const photo = document.createElementNS(svgNS, 'rect');
+      photo.setAttribute('x', -w/2 + 1.4); photo.setAttribute('y', -h/2 + 1.4);
+      photo.setAttribute('width', w - 2.8); photo.setAttribute('height', photoH);
+      photo.setAttribute('fill', darken(youCoreHex, 0.12));
+      wrap.appendChild(photo);
 
-    // a faint dotted halo further out, the extended corona
-    const coronaHalo = document.createElementNS(svgNS, 'circle');
-    coronaHalo.setAttribute('r', 40);
-    coronaHalo.setAttribute('fill', 'none');
-    coronaHalo.setAttribute('stroke', 'var(--you-glow)');
-    coronaHalo.setAttribute('stroke-width', '0.6');
-    coronaHalo.setAttribute('stroke-dasharray', '0.5,4');
-    coronaHalo.setAttribute('opacity', '0.3');
+      // a simple horizon split within the photo area — just enough to
+      // read as "a photo of something" without drawing a literal icon
+      const groundH = photoH * 0.32;
+      const ground = document.createElementNS(svgNS, 'rect');
+      ground.setAttribute('x', -w/2 + 1.4); ground.setAttribute('y', -h/2 + 1.4 + photoH - groundH);
+      ground.setAttribute('width', w - 2.8); ground.setAttribute('height', groundH);
+      ground.setAttribute('fill', darken(youCoreHex, 0.22));
+      wrap.appendChild(ground);
 
-    // a couple of small stars, visible only because the sky darkens
-    // during totality — a nice authentic detail
-    function makeTinyStar(x, y, size){
-      const s = document.createElementNS(svgNS, 'path');
-      s.setAttribute('d', `M0,-${size} L${size*0.18},-${size*0.18} L${size},0 L${size*0.18},${size*0.18} L0,${size} L-${size*0.18},${size*0.18} L-${size},0 L-${size*0.18},-${size*0.18} Z`);
-      s.setAttribute('transform', `translate(${x},${y})`);
-      s.setAttribute('fill', lighten(youCoreHex, 0.55));
-      s.setAttribute('opacity', '0.7');
-      return s;
+      return wrap;
     }
-    const tinyStar1 = makeTinyStar(-31, -14, 1.6);
-    const tinyStar2 = makeTinyStar(26, 20, 1.3);
+    const printBack = makePrint(-3, 3, -16, 17, 21, 4.5);
+    const printMid = makePrint(4, -1, 9, 17, 21, 4.5);
+    const printFront = makePrint(-1, -5, -3, 17, 21, 4.5);
 
     const label = document.createElementNS(svgNS, 'text');
     label.setAttribute('class', 'you-label');
@@ -1040,12 +1028,9 @@
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
-    you.appendChild(coronaHalo);
-    you.appendChild(tinyStar1);
-    you.appendChild(tinyStar2);
-    you.appendChild(coronaRays);
-    you.appendChild(darkDisc);
-    you.appendChild(diamondRing);
+    you.appendChild(printBack);
+    you.appendChild(printMid);
+    you.appendChild(printFront);
     you.appendChild(label);
     g.appendChild(you);
     gEls.you = you;

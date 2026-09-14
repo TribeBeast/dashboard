@@ -1226,49 +1226,21 @@
     handHub.setAttribute('fill', darken(youCoreHex, 0.4));
     handWrap.appendChild(hand);
     handWrap.appendChild(handHub);
-    if (!reduceMotion){
-      const handAnim = document.createElementNS(svgNS, 'animateTransform');
-      handAnim.setAttribute('attributeName', 'transform');
-      handAnim.setAttribute('type', 'rotate');
-      handAnim.setAttribute('from', '0 0 0');
-      handAnim.setAttribute('to', '360 0 0');
-      handAnim.setAttribute('dur', '12s');
-      handAnim.setAttribute('repeatCount', 'indefinite');
-      handWrap.appendChild(handAnim);
-    }
+    // rotation driven by decorFrame() below instead of SMIL — starts
+    // immediately and reliably rather than sometimes appearing frozen
+    // right after buildScene()'s heavy synchronous DOM construction
+    gEls.handWrap = handWrap;
 
     // a smaller gear meshing alongside the main one
-    const smallGear = document.createElementNS(svgNS, 'g');
-    smallGear.setAttribute('transform', 'translate(29,16)');
-    const smallGearBody = document.createElementNS(svgNS, 'circle');
-    smallGearBody.setAttribute('r', 8);
-    smallGearBody.setAttribute('fill', lighten(youCoreHex, 0.15));
-    smallGearBody.setAttribute('stroke', darken(youCoreHex, 0.3));
-    smallGearBody.setAttribute('stroke-width', '1');
-    smallGear.appendChild(smallGearBody);
-    for (let i = 0; i < 8; i++){
-      const tooth = document.createElementNS(svgNS, 'rect');
-      tooth.setAttribute('x', -0.9); tooth.setAttribute('y', -8.8);
-      tooth.setAttribute('width', '1.8'); tooth.setAttribute('height', '2');
-      tooth.setAttribute('fill', darken(youCoreHex, 0.25));
-      tooth.setAttribute('transform', `rotate(${(360/8)*i})`);
-      smallGear.appendChild(tooth);
-    }
-    const smallGearHub = document.createElementNS(svgNS, 'circle');
-    smallGearHub.setAttribute('r', 1.8);
-    smallGearHub.setAttribute('fill', darken(youCoreHex, 0.35));
-    smallGear.appendChild(smallGearHub);
-    if (!reduceMotion){
-      const smallGearAnim = document.createElementNS(svgNS, 'animateTransform');
-      smallGearAnim.setAttribute('attributeName', 'transform');
-      smallGearAnim.setAttribute('type', 'rotate');
-      smallGearAnim.setAttribute('from', '360');
-      smallGearAnim.setAttribute('to', '0');
-      smallGearAnim.setAttribute('dur', '9s');
-      smallGearAnim.setAttribute('repeatCount', 'indefinite');
-      smallGearAnim.setAttribute('additive', 'sum');
-      smallGear.appendChild(smallGearAnim);
-    }
+    // a small energy flare near the rim — a spark catching light off
+    // the gear's teeth, in place of what was a redundant extra circle
+    const flare = document.createElementNS(svgNS, 'path');
+    const fSize = 3.6;
+    flare.setAttribute('d', `M0,-${fSize} L${fSize*0.2},-${fSize*0.2} L${fSize},0 L${fSize*0.2},${fSize*0.2} L0,${fSize} L-${fSize*0.2},${fSize*0.2} L-${fSize},0 L-${fSize*0.2},-${fSize*0.2} Z`);
+    flare.setAttribute('transform', 'translate(25,-16)');
+    flare.setAttribute('fill', lighten(youCoreHex, 0.65));
+    flare.setAttribute('class', 'node-glint');
+    flare.style.animationDuration = '3.2s';
 
     const label = document.createElementNS(svgNS, 'text');
     label.setAttribute('class', 'you-label');
@@ -1277,7 +1249,7 @@
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
-    you.appendChild(smallGear);
+    you.appendChild(flare);
     you.appendChild(mainTeeth);
     you.appendChild(core);
     you.appendChild(bolts);
@@ -1313,55 +1285,12 @@
 
       const mCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
 
-      const mRing = document.createElementNS(svgNS, 'ellipse');
-      mRing.setAttribute('rx', 17); mRing.setAttribute('ry', 4.5);
-      mRing.setAttribute('transform', 'rotate(-16)');
-      mRing.setAttribute('fill', 'none');
-      mRing.setAttribute('stroke', 'var(--you-glow)');
-      mRing.setAttribute('stroke-width', '1.2');
-      mRing.setAttribute('opacity', '0.5');
-
       const mCore = document.createElementNS(svgNS, 'circle');
       mCore.setAttribute('r', 10);
       mCore.setAttribute('fill', 'var(--you-core)');
       mCore.setAttribute('stroke', 'var(--you-shadow)');
       mCore.setAttribute('stroke-width', '1');
       mCore.setAttribute('filter', 'url(#starglow)');
-
-      const mBandDark = document.createElementNS(svgNS, 'ellipse');
-      mBandDark.setAttribute('cx', 1); mBandDark.setAttribute('cy', 5);
-      mBandDark.setAttribute('rx', 12); mBandDark.setAttribute('ry', 3.8);
-      mBandDark.setAttribute('transform', 'rotate(-9)');
-      mBandDark.setAttribute('fill', darken(mCoreHex, 0.22));
-      mBandDark.setAttribute('opacity', '0.75');
-      mBandDark.setAttribute('clip-path', 'url(#circleClipSmall)');
-
-      const mBandLight = document.createElementNS(svgNS, 'ellipse');
-      mBandLight.setAttribute('cx', -2); mBandLight.setAttribute('cy', -4);
-      mBandLight.setAttribute('rx', 11); mBandLight.setAttribute('ry', 3.2);
-      mBandLight.setAttribute('transform', 'rotate(11)');
-      mBandLight.setAttribute('fill', lighten(mCoreHex, 0.38));
-      mBandLight.setAttribute('opacity', '0.8');
-      mBandLight.setAttribute('clip-path', 'url(#circleClipSmall)');
-
-      const mMoonOrbit = document.createElementNS(svgNS, 'g');
-      const mMoon = document.createElementNS(svgNS, 'circle');
-      mMoon.setAttribute('cx', 19); mMoon.setAttribute('cy', 0);
-      mMoon.setAttribute('r', 1.5);
-      mMoon.setAttribute('fill', lighten(mCoreHex, 0.55));
-      mMoon.setAttribute('stroke', darken(mCoreHex, 0.3));
-      mMoon.setAttribute('stroke-width', '0.5');
-      mMoonOrbit.appendChild(mMoon);
-      if (!reduceMotion){
-        const mMoonAnim = document.createElementNS(svgNS, 'animateTransform');
-        mMoonAnim.setAttribute('attributeName', 'transform');
-        mMoonAnim.setAttribute('type', 'rotate');
-        mMoonAnim.setAttribute('from', '0 0 0');
-        mMoonAnim.setAttribute('to', '360 0 0');
-        mMoonAnim.setAttribute('dur', (12 + Math.random()*5).toFixed(1) + 's');
-        mMoonAnim.setAttribute('repeatCount', 'indefinite');
-        mMoonOrbit.appendChild(mMoonAnim);
-      }
 
       const mRim = document.createElementNS(svgNS, 'circle');
       mRim.setAttribute('r', 10.4);
@@ -1378,11 +1307,7 @@
 
       mini.appendChild(mHaloOuter);
       mini.appendChild(mHaloInner);
-      mini.appendChild(mRing);
       mini.appendChild(mCore);
-      mini.appendChild(mBandDark);
-      mini.appendChild(mBandLight);
-      mini.appendChild(mMoonOrbit);
       mini.appendChild(mRim);
       mini.appendChild(mLabel);
       g.appendChild(mini);
@@ -2038,6 +1963,23 @@
   // — this runs continuously, separately from the initial settle-in tween
   let orbitLastTs = null;
   let orbitStarted = false;
+
+  // the second hand spins immediately on load — its own lightweight
+  // rAF loop, separate from orbitFrame's deliberate startup delay below
+  let decorLastTs = null;
+  let handAngle = 0;
+  function decorFrame(ts){
+    if (decorLastTs === null) decorLastTs = ts;
+    const dt = (ts - decorLastTs) / 1000;
+    decorLastTs = ts;
+    if (gEls.handWrap){
+      handAngle = (handAngle + (360/12) * dt) % 360;
+      gEls.handWrap.setAttribute('transform', `rotate(${handAngle.toFixed(2)})`);
+    }
+    requestAnimationFrame(decorFrame);
+  }
+  if (!reduceMotion) requestAnimationFrame(decorFrame);
+
   function orbitFrame(ts){
     if (orbitLastTs === null) orbitLastTs = ts;
     const dt = (ts - orbitLastTs) / 1000;

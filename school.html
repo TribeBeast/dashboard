@@ -979,77 +979,102 @@
 
     const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
 
-    // School is an orrery — a mechanical model of orbiting bodies, with
-    // visible rigid arms holding each moon rather than invisible orbit
-    // paths. A teaching-tool aesthetic, genuinely different in concept
-    // from a planet: mechanical brass-and-glass, not organic.
-    const baseRing = document.createElementNS(svgNS, 'circle');
-    baseRing.setAttribute('r', 4.5);
-    baseRing.setAttribute('fill', 'none');
-    baseRing.setAttribute('stroke', darken(youCoreHex, 0.35));
-    baseRing.setAttribute('stroke-width', '1.6');
+    // School is a classroom globe — tilted on its axis with visible
+    // latitude/longitude grid lines and continent shapes. Unmistakably
+    // tied to school itself, not another generic mechanical device.
+    const globeTilt = 23;
+    const globeGroup = document.createElementNS(svgNS, 'g');
+    globeGroup.setAttribute('transform', `rotate(${globeTilt})`);
 
     const core = document.createElementNS(svgNS, 'circle');
-    core.setAttribute('r', 16);
+    core.setAttribute('r', 18);
     core.setAttribute('fill', 'var(--you-core)');
     core.setAttribute('stroke', 'var(--you-shadow)');
     core.setAttribute('stroke-width', '1.2');
     core.setAttribute('filter', 'url(#starglow)');
+    globeGroup.appendChild(core);
 
-    // a small highlight patch, kept simple — most of the visual
-    // interest here comes from the mechanism, not surface texture
+    // longitude lines — vertical ellipses of decreasing width, all
+    // sharing the same top/bottom poles
+    for (let i = 0; i < 4; i++){
+      const lon = document.createElementNS(svgNS, 'ellipse');
+      const rx = [18, 13, 7, 2.5][i];
+      lon.setAttribute('rx', rx); lon.setAttribute('ry', 18);
+      lon.setAttribute('fill', 'none');
+      lon.setAttribute('stroke', darken(youCoreHex, 0.28));
+      lon.setAttribute('stroke-width', '0.6');
+      lon.setAttribute('opacity', '0.55');
+      lon.setAttribute('clip-path', 'url(#circleClip)');
+      globeGroup.appendChild(lon);
+    }
+    // latitude lines — horizontal ellipses stacked at different heights
+    const latRows = [-11, -5.5, 0, 5.5, 11];
+    latRows.forEach(y => {
+      const width = Math.sqrt(Math.max(0, 18*18 - y*y));
+      const lat = document.createElementNS(svgNS, 'ellipse');
+      lat.setAttribute('cy', y);
+      lat.setAttribute('rx', width); lat.setAttribute('ry', 2.2);
+      lat.setAttribute('fill', 'none');
+      lat.setAttribute('stroke', darken(youCoreHex, 0.28));
+      lat.setAttribute('stroke-width', '0.6');
+      lat.setAttribute('opacity', '0.5');
+      lat.setAttribute('clip-path', 'url(#circleClip)');
+      globeGroup.appendChild(lat);
+    });
+
+    // a few irregular "continent" patches
+    function makeContinent(cx, cy, w, h, rot){
+      const cont = document.createElementNS(svgNS, 'ellipse');
+      cont.setAttribute('cx', cx); cont.setAttribute('cy', cy);
+      cont.setAttribute('rx', w); cont.setAttribute('ry', h);
+      cont.setAttribute('transform', `rotate(${rot} ${cx} ${cy})`);
+      cont.setAttribute('fill', darken(youCoreHex, 0.2));
+      cont.setAttribute('opacity', '0.6');
+      cont.setAttribute('clip-path', 'url(#circleClip)');
+      return cont;
+    }
+    globeGroup.appendChild(makeContinent(-6, -6, 6, 4, -20));
+    globeGroup.appendChild(makeContinent(5, 2, 5, 3.2, 15));
+    globeGroup.appendChild(makeContinent(-3, 9, 4, 2.6, 5));
+    globeGroup.appendChild(makeContinent(8, -9, 3.5, 2.4, -30));
+
+    // a small equatorial shine for a touch of gloss
     const shine = document.createElementNS(svgNS, 'ellipse');
-    shine.setAttribute('cx', -4); shine.setAttribute('cy', -5);
-    shine.setAttribute('rx', 7); shine.setAttribute('ry', 5.5);
+    shine.setAttribute('cx', -6); shine.setAttribute('cy', -8);
+    shine.setAttribute('rx', 6); shine.setAttribute('ry', 4);
     shine.setAttribute('fill', lighten(youCoreHex, 0.4));
-    shine.setAttribute('opacity', '0.65');
+    shine.setAttribute('opacity', '0.4');
     shine.setAttribute('clip-path', 'url(#circleClip)');
+    globeGroup.appendChild(shine);
 
-    // gear teeth ringing the core's base, like the mechanism driving it
-    const teeth = document.createElementNS(svgNS, 'g');
-    for (let i = 0; i < 10; i++){
-      const tooth = document.createElementNS(svgNS, 'rect');
-      tooth.setAttribute('x', -1); tooth.setAttribute('y', -19.5);
-      tooth.setAttribute('width', '2'); tooth.setAttribute('height', '2.4');
-      tooth.setAttribute('fill', darken(youCoreHex, 0.3));
-      tooth.setAttribute('transform', `rotate(${(360/10)*i})`);
-      teeth.appendChild(tooth);
-    }
+    // the metal axis rod, poking out slightly past both poles
+    const axisRod = document.createElementNS(svgNS, 'line');
+    axisRod.setAttribute('x1', 0); axisRod.setAttribute('y1', -23);
+    axisRod.setAttribute('x2', 0); axisRod.setAttribute('y2', 23);
+    axisRod.setAttribute('stroke', darken(youCoreHex, 0.45));
+    axisRod.setAttribute('stroke-width', '1');
+    globeGroup.appendChild(axisRod);
+    const poleCapTop = document.createElementNS(svgNS, 'circle');
+    poleCapTop.setAttribute('cy', -23); poleCapTop.setAttribute('r', 1.2);
+    poleCapTop.setAttribute('fill', darken(youCoreHex, 0.5));
+    globeGroup.appendChild(poleCapTop);
+    const poleCapBottom = document.createElementNS(svgNS, 'circle');
+    poleCapBottom.setAttribute('cy', 23); poleCapBottom.setAttribute('r', 1.2);
+    poleCapBottom.setAttribute('fill', darken(youCoreHex, 0.5));
+    globeGroup.appendChild(poleCapBottom);
 
-    // three rigid orbital arms, each ending in a small orb — the whole
-    // arm+orb assembly rotates together as one unit, unlike a freely
-    // drifting moon, which is exactly the orrery look
-    function makeArm(radius, orbSize, dur, reverse, tilt){
-      const wrap = document.createElementNS(svgNS, 'g');
-      wrap.setAttribute('transform', `rotate(${tilt})`);
-      const arm = document.createElementNS(svgNS, 'line');
-      arm.setAttribute('x1', 0); arm.setAttribute('y1', 0);
-      arm.setAttribute('x2', radius); arm.setAttribute('y2', 0);
-      arm.setAttribute('stroke', darken(youCoreHex, 0.3));
-      arm.setAttribute('stroke-width', '1');
-      const orb = document.createElementNS(svgNS, 'circle');
-      orb.setAttribute('cx', radius); orb.setAttribute('cy', 0);
-      orb.setAttribute('r', orbSize);
-      orb.setAttribute('fill', lighten(youCoreHex, 0.5));
-      orb.setAttribute('stroke', darken(youCoreHex, 0.3));
-      orb.setAttribute('stroke-width', '0.5');
-      wrap.appendChild(arm);
-      wrap.appendChild(orb);
-      if (!reduceMotion){
-        const anim = document.createElementNS(svgNS, 'animateTransform');
-        anim.setAttribute('attributeName', 'transform');
-        anim.setAttribute('type', 'rotate');
-        anim.setAttribute('from', (reverse ? tilt+360 : tilt) + ' 0 0');
-        anim.setAttribute('to', (reverse ? tilt : tilt+360) + ' 0 0');
-        anim.setAttribute('dur', dur + 's');
-        anim.setAttribute('repeatCount', 'indefinite');
-        wrap.appendChild(anim);
-      }
-      return wrap;
+    // the whole globe spins slowly on its axis
+    if (!reduceMotion){
+      const spinAnim = document.createElementNS(svgNS, 'animateTransform');
+      spinAnim.setAttribute('attributeName', 'transform');
+      spinAnim.setAttribute('type', 'rotate');
+      spinAnim.setAttribute('from', '0');
+      spinAnim.setAttribute('to', '360');
+      spinAnim.setAttribute('dur', '40s');
+      spinAnim.setAttribute('repeatCount', 'indefinite');
+      spinAnim.setAttribute('additive', 'sum');
+      globeGroup.appendChild(spinAnim);
     }
-    const arm1 = makeArm(38, 2.4, (14 + Math.random()*4).toFixed(1), false, 0);
-    const arm2 = makeArm(29, 1.9, (10 + Math.random()*3).toFixed(1), true, 130);
-    const arm3 = makeArm(21, 1.5, (7 + Math.random()*3).toFixed(1), false, 250);
 
     const rim = document.createElementNS(svgNS, 'circle');
     rim.setAttribute('r', 19.5);
@@ -1065,13 +1090,7 @@
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
-    you.appendChild(arm1);
-    you.appendChild(arm2);
-    you.appendChild(arm3);
-    you.appendChild(teeth);
-    you.appendChild(core);
-    you.appendChild(shine);
-    you.appendChild(baseRing);
+    you.appendChild(globeGroup);
     you.appendChild(rim);
     you.appendChild(label);
     g.appendChild(you);

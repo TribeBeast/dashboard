@@ -1083,33 +1083,31 @@
     // a small satellite (body + two panel wings) instead of a round moon
     const satOrbit = document.createElementNS(svgNS, 'g');
     const satBody = document.createElementNS(svgNS, 'rect');
-    satBody.setAttribute('x', 34); satBody.setAttribute('y', -1.6);
-    satBody.setAttribute('width', '4'); satBody.setAttribute('height', '3.2');
-    satBody.setAttribute('rx', '0.6');
+    satBody.setAttribute('x', 34); satBody.setAttribute('y', -2);
+    satBody.setAttribute('width', '5'); satBody.setAttribute('height', '4');
+    satBody.setAttribute('rx', '0.7');
     satBody.setAttribute('fill', lighten(youCoreHex, 0.5));
     satBody.setAttribute('stroke', darken(youCoreHex, 0.3));
     satBody.setAttribute('stroke-width', '0.4');
     const satWingA = document.createElementNS(svgNS, 'rect');
-    satWingA.setAttribute('x', 28.5); satWingA.setAttribute('y', -0.7);
-    satWingA.setAttribute('width', '4.5'); satWingA.setAttribute('height', '1.4');
+    satWingA.setAttribute('x', 27.5); satWingA.setAttribute('y', -0.9);
+    satWingA.setAttribute('width', '5.5'); satWingA.setAttribute('height', '1.8');
     satWingA.setAttribute('fill', darken(youCoreHex, 0.15));
     const satWingB = document.createElementNS(svgNS, 'rect');
-    satWingB.setAttribute('x', 39); satWingB.setAttribute('y', -0.7);
-    satWingB.setAttribute('width', '4.5'); satWingB.setAttribute('height', '1.4');
+    satWingB.setAttribute('x', 40); satWingB.setAttribute('y', -0.9);
+    satWingB.setAttribute('width', '5.5'); satWingB.setAttribute('height', '1.8');
     satWingB.setAttribute('fill', darken(youCoreHex, 0.15));
     satOrbit.appendChild(satWingA);
     satOrbit.appendChild(satBody);
     satOrbit.appendChild(satWingB);
-    if (!reduceMotion){
-      const satAnim = document.createElementNS(svgNS, 'animateTransform');
-      satAnim.setAttribute('attributeName', 'transform');
-      satAnim.setAttribute('type', 'rotate');
-      satAnim.setAttribute('from', '0 0 0');
-      satAnim.setAttribute('to', '360 0 0');
-      satAnim.setAttribute('dur', (18 + Math.random()*6).toFixed(1) + 's');
-      satAnim.setAttribute('repeatCount', 'indefinite');
-      satOrbit.appendChild(satAnim);
-    }
+    // rotation is driven by decorFrame() below instead of SMIL — SMIL
+    // animateTransform can appear frozen for a moment right after a lot
+    // of synchronous DOM construction (exactly what buildScene() just
+    // did), whereas a plain rAF loop starts immediately and reliably.
+    // Using bare rotate(deg) with no explicit cx/cy pivots around the
+    // group's local (0,0), which is Work's true center — not the tip
+    // of the satellite itself.
+    gEls.satOrbit = satOrbit;
 
     const rim = document.createElementNS(svgNS, 'circle');
     rim.setAttribute('r', 19.5);
@@ -1596,6 +1594,25 @@
   // runs continuously and separately from the initial settle-in tween
   let orbitLastTs = null;
   let orbitStarted = false;
+
+  // the small satellite decoration spins immediately on load — kept as
+  // its own lightweight rAF loop, entirely separate from orbitFrame's
+  // deliberate startup delay below, since it doesn't need to wait for
+  // any settle-in tween to finish
+  let decorLastTs = null;
+  let satAngle = 0;
+  function decorFrame(ts){
+    if (decorLastTs === null) decorLastTs = ts;
+    const dt = (ts - decorLastTs) / 1000;
+    decorLastTs = ts;
+    if (gEls.satOrbit){
+      satAngle = (satAngle + (360/11.5) * dt) % 360;
+      gEls.satOrbit.setAttribute('transform', `rotate(${satAngle.toFixed(2)})`);
+    }
+    requestAnimationFrame(decorFrame);
+  }
+  if (!reduceMotion) requestAnimationFrame(decorFrame);
+
   function orbitFrame(ts){
     if (orbitLastTs === null) orbitLastTs = ts;
     const dt = (ts - orbitLastTs) / 1000;

@@ -254,6 +254,40 @@
     50% { opacity: 0.4; transform: scale(1.2); }
   }
 
+  /* a tiny specular glint — like light catching a cut gem — flat, not a
+     gradient, just a small bright point that flashes on its own cycle,
+     giving the star some sparkle without adding any shading */
+  .node-glint{
+    fill: #FFFFFF;
+    animation-name: node-glint-flash;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+  }
+  @keyframes node-glint-flash{
+    0%, 82%, 100% { opacity: 0; }
+    88% { opacity: 0.95; }
+    94% { opacity: 0.2; }
+  }
+
+  /* a one-shot ring of energy when a star is actually clicked, right
+     before it warps — separate from the ambient glow/glint, this only
+     ever plays once per click */
+  .click-ring{
+    fill: none;
+    stroke-width: 1.4;
+    pointer-events: none;
+    animation: click-ring-burst 480ms ease-out forwards;
+  }
+  @keyframes click-ring-burst{
+    0% { r: 4; stroke-opacity: 0.8; stroke-width: 2.2; }
+    100% { r: 26; stroke-opacity: 0; stroke-width: 0.4; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .node-glint{ animation: none; opacity: 0; }
+    .click-ring{ animation: none; display: none; }
+  }
+
   /* each star drifts gently and independently, so the whole field feels
      alive at rest rather than only reacting to hover — purely a local
      offset, doesn't touch the positioning transform the layout controls */
@@ -971,10 +1005,20 @@
       circle.style.setProperty('--rot', (Math.random()*10 - 5).toFixed(1) + 'deg');
       circle.style.animationDuration = (6 + Math.random()*6).toFixed(2) + 's';
       circle.style.animationDelay = '-' + (Math.random()*12).toFixed(2) + 's';
+      // small glint highlight, offset slightly off-center like light
+      // catching one facet of the star rather than the whole thing
+      const glint = document.createElementNS(svgNS, 'circle');
+      glint.setAttribute('class', 'node-glint');
+      glint.setAttribute('cx', -2.6); glint.setAttribute('cy', -2.6);
+      glint.setAttribute('r', 1.4);
+      glint.style.animationDuration = (3.5 + Math.random()*3.5).toFixed(2) + 's';
+      glint.style.animationDelay = '-' + (Math.random()*7).toFixed(2) + 's';
+
       const starWrap = document.createElementNS(svgNS, 'g');
       starWrap.setAttribute('class', 'star-wrap');
       starWrap.appendChild(glow);
       starWrap.appendChild(circle);
+      starWrap.appendChild(glint);
 
       const text = document.createElementNS(svgNS, 'text');
       text.setAttribute('class', 'node-label');
@@ -1007,12 +1051,25 @@
       });
       group.addEventListener('pointerup', e => {
         e.stopPropagation();
-        if (!moved) warpTo(n);
+        if (!moved){ spawnClickRing(n); warpTo(n); }
         downAt = null;
       });
     });
 
     gEls.g = g;
+  }
+
+  // a single expanding ring, fired once right as a star is clicked —
+  // separate from the ambient glow/glint, purely a one-shot response
+  function spawnClickRing(n){
+    if (!n._group) return;
+    const ring = document.createElementNS(svgNS, 'circle');
+    ring.setAttribute('class', 'click-ring');
+    ring.setAttribute('cx', 0); ring.setAttribute('cy', 0);
+    ring.setAttribute('r', 4);
+    ring.setAttribute('stroke', n.color || CATS[n.category]?.hex || CATS.other.hex);
+    n._group.appendChild(ring);
+    ring.addEventListener('animationend', () => ring.remove());
   }
 
   function positionScene(){

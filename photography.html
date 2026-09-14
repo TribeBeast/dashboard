@@ -978,64 +978,72 @@
 
     const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
 
-    // Photography is a round pearl planet with a filmstrip perforation
-    // ring and a single small print tucked against its edge — still
-    // reads as a planet first, with the photography motifs as surface
-    // detail rather than replacing the circular shape entirely.
+    // Photography is a film reel — two filmstrips (each with real
+    // sprocket-hole perforations) wrap around it at opposite tilts,
+    // crossing over the front in an X, like film unspooling across a
+    // reel. Still a round core at heart, but a much more specific and
+    // dynamic image than a plain planet.
+    function makeFilmStrand(rx, ry, tiltDeg, holeCount){
+      const strand = document.createElementNS(svgNS, 'g');
+      strand.setAttribute('transform', `rotate(${tiltDeg})`);
+
+      // the strip itself — a wide, dark ribbon
+      const band = document.createElementNS(svgNS, 'ellipse');
+      band.setAttribute('rx', rx); band.setAttribute('ry', ry);
+      band.setAttribute('fill', 'none');
+      band.setAttribute('stroke', darken(youCoreHex, 0.4));
+      band.setAttribute('stroke-width', '4.2');
+      strand.appendChild(band);
+
+      // sprocket-hole perforations along its length, on both edges
+      for (let i = 0; i < holeCount; i++){
+        const t = (i / holeCount) * Math.PI * 2;
+        const x = rx * Math.cos(t);
+        const y = ry * Math.sin(t);
+        // a rough outward normal, to offset the two rows of holes to
+        // either side of the strip's centerline
+        const nx = Math.cos(t) / rx, ny = Math.sin(t) / ry;
+        const nlen = Math.hypot(nx, ny) || 1;
+        const ox = (nx/nlen) * 1.5, oy = (ny/nlen) * 1.5;
+        [1, -1].forEach(side => {
+          const hole = document.createElementNS(svgNS, 'rect');
+          hole.setAttribute('x', -0.55); hole.setAttribute('y', -0.4);
+          hole.setAttribute('width', '1.1'); hole.setAttribute('height', '0.8');
+          hole.setAttribute('fill', lighten(youCoreHex, 0.5));
+          hole.setAttribute('transform', `translate(${x + ox*side},${y + oy*side})`);
+          strand.appendChild(hole);
+        });
+      }
+      return strand;
+    }
+    // two strands, mirrored tilts, so they visibly cross in an X both
+    // in front of and behind the core
+    const strandA = makeFilmStrand(27, 9, -32, 14);
+    const strandB = makeFilmStrand(27, 9, 32, 14);
+
+    // the reel core — a disc with a few spoke holes and a center hub,
+    // like a real take-up reel
     const core = document.createElementNS(svgNS, 'circle');
-    core.setAttribute('r', 18);
+    core.setAttribute('r', 16);
     core.setAttribute('fill', 'var(--you-core)');
     core.setAttribute('stroke', 'var(--you-shadow)');
     core.setAttribute('stroke-width', '1.2');
     core.setAttribute('filter', 'url(#starglow)');
 
-    const shine = document.createElementNS(svgNS, 'ellipse');
-    shine.setAttribute('cx', -6); shine.setAttribute('cy', -7);
-    shine.setAttribute('rx', 7); shine.setAttribute('ry', 5.5);
-    shine.setAttribute('fill', lighten(youCoreHex, 0.35));
-    shine.setAttribute('opacity', '0.5');
-    shine.setAttribute('clip-path', 'url(#circleClip)');
-
-    // a ring of small film-sprocket perforations, like a filmstrip
-    // wrapped around the planet
-    const sprockets = document.createElementNS(svgNS, 'g');
-    for (let i = 0; i < 16; i++){
-      const hole = document.createElementNS(svgNS, 'rect');
-      hole.setAttribute('x', -0.9); hole.setAttribute('y', -25.5);
-      hole.setAttribute('width', '1.8'); hole.setAttribute('height', '1.4');
-      hole.setAttribute('rx', '0.3');
-      hole.setAttribute('fill', darken(youCoreHex, 0.35));
-      hole.setAttribute('transform', `rotate(${(360/16)*i})`);
-      sprockets.appendChild(hole);
+    const spokeHoles = document.createElementNS(svgNS, 'g');
+    for (let i = 0; i < 3; i++){
+      const hole = document.createElementNS(svgNS, 'circle');
+      const a = (Math.PI/180) * (120*i - 90);
+      hole.setAttribute('cx', (8*Math.cos(a)).toFixed(1));
+      hole.setAttribute('cy', (8*Math.sin(a)).toFixed(1));
+      hole.setAttribute('r', 3);
+      hole.setAttribute('fill', darken(youCoreHex, 0.3));
+      hole.setAttribute('opacity', '0.55');
+      spokeHoles.appendChild(hole);
     }
-
-    // one small print, tucked against the planet's edge like a sticker
-    function makePrint(w, h, bottomBorder){
-      const wrap = document.createElementNS(svgNS, 'g');
-      const card = document.createElementNS(svgNS, 'rect');
-      card.setAttribute('x', -w/2); card.setAttribute('y', -h/2);
-      card.setAttribute('width', w); card.setAttribute('height', h);
-      card.setAttribute('rx', 0.6);
-      card.setAttribute('fill', '#FFFFFF');
-      card.setAttribute('stroke', darken(youCoreHex, 0.3));
-      card.setAttribute('stroke-width', '0.5');
-      wrap.appendChild(card);
-      const photoH = h - bottomBorder - 3;
-      const photo = document.createElementNS(svgNS, 'rect');
-      photo.setAttribute('x', -w/2 + 1.2); photo.setAttribute('y', -h/2 + 1.2);
-      photo.setAttribute('width', w - 2.4); photo.setAttribute('height', photoH);
-      photo.setAttribute('fill', darken(youCoreHex, 0.12));
-      wrap.appendChild(photo);
-      const groundH = photoH * 0.32;
-      const ground = document.createElementNS(svgNS, 'rect');
-      ground.setAttribute('x', -w/2 + 1.2); ground.setAttribute('y', -h/2 + 1.2 + photoH - groundH);
-      ground.setAttribute('width', w - 2.4); ground.setAttribute('height', groundH);
-      ground.setAttribute('fill', darken(youCoreHex, 0.22));
-      wrap.appendChild(ground);
-      return wrap;
-    }
-    const print = makePrint(13, 16, 3.5);
-    print.setAttribute('transform', 'translate(15,15) rotate(12)');
+    const hub = document.createElementNS(svgNS, 'circle');
+    hub.setAttribute('r', 2.4);
+    hub.setAttribute('fill', darken(youCoreHex, 0.4));
 
     const rim = document.createElementNS(svgNS, 'circle');
     rim.setAttribute('r', 19.5);
@@ -1051,10 +1059,11 @@
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
+    you.appendChild(strandA);
+    you.appendChild(strandB);
     you.appendChild(core);
-    you.appendChild(shine);
-    you.appendChild(sprockets);
-    you.appendChild(print);
+    you.appendChild(spokeHoles);
+    you.appendChild(hub);
     you.appendChild(rim);
     you.appendChild(label);
     g.appendChild(you);

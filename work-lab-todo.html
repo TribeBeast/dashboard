@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 <title>To-do</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -521,6 +521,7 @@
 
 <svg id="popup-line"></svg>
 
+<script src="sync.js"></script>
 <script>
 (function(){
   const CATS = {
@@ -640,25 +641,17 @@
 
   // ---------- storage (plain localStorage, works on any host) ----------
   async function loadState(){
-    let saved = null;
-    try {
-      const raw = localStorage.getItem('work-lab-todo-nodes');
-      if (raw) saved = JSON.parse(raw);
-    } catch(e){}
+    const saved = await SiteSync.loadFreshest('work-lab-todo-nodes', true);
     nodes = saved && saved.length ? saved : DEFAULT_NODES.map(n => ({...n}));
 
-    try {
-      const nt = localStorage.getItem('work-lab-todo-notes');
-      if (nt) document.getElementById('notes').value = nt;
-    } catch(e){}
+    const nt = await SiteSync.loadFreshest('work-lab-todo-notes', false);
+    if (nt) document.getElementById('notes').value = nt;
   }
   async function saveNodes(){
-    try { localStorage.setItem('work-lab-todo-nodes', JSON.stringify(nodes)); }
-    catch(e){ console.error('Could not save links', e); }
+    SiteSync.save('work-lab-todo-nodes', nodes);
   }
   async function saveNotes(val){
-    try { localStorage.setItem('work-lab-todo-notes', val); }
-    catch(e){ console.error('Could not save notes', e); }
+    SiteSync.save('work-lab-todo-notes', val);
   }
 
 
@@ -672,8 +665,7 @@
     } catch(e){ return { apiKey: '', calendars: [] }; }
   }
   function saveGcalConfig(cfg){
-    try { localStorage.setItem('gcal-config', JSON.stringify(cfg)); }
-    catch(e){ console.error('Could not save calendar config', e); }
+    SiteSync.save('gcal-config', cfg);
   }
   function setGcStatus(msg, isError){
     const el = document.getElementById('gc-status');
@@ -817,8 +809,7 @@
     } catch(e){ return null; }
   }
   function saveCanvasSettings(s){
-    try { localStorage.setItem('todo-canvas-settings', JSON.stringify(s)); }
-    catch(e){ console.error('Could not save Canvas settings', e); }
+    SiteSync.save('todo-canvas-settings', s);
   }
 
   function setCvStatus(msg, isError){
@@ -1727,6 +1718,8 @@
   // ---------- init ----------
   (async function init(){
     await loadState();
+    await SiteSync.loadFreshest('gcal-config', true);
+    await SiteSync.loadFreshest('todo-canvas-settings', true);
     buildScene();
     relayout();
     initCanvasSyncUI();

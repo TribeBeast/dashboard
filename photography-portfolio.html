@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 <title>Portfolio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -168,6 +168,14 @@
     font-size: 18px; cursor: pointer; padding: 6px;
   }
   #lightbox-close:hover{ color: var(--text); }
+  #lightbox-delete{
+    position: fixed; top: 22px; right: 66px; z-index: 26;
+    background: none; border: none; color: var(--text-dim);
+    cursor: pointer; padding: 6px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #lightbox-delete svg{ width: 19px; height: 19px; }
+  #lightbox-delete:hover{ color: #E8707A; }
 
   #modal-overlay{
     position: fixed; inset: 0; background: rgba(2,3,10,0.65);
@@ -264,6 +272,9 @@
 
 <div id="lightbox-overlay">
   <button id="lightbox-close" aria-label="Close">✕</button>
+  <button id="lightbox-delete" aria-label="Remove this photo" title="Remove this photo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+  </button>
   <img id="lightbox-img" alt="">
   <div id="lightbox-cap"></div>
 </div>
@@ -293,6 +304,7 @@
   </div>
 </div>
 
+<script src="sync.js"></script>
 <script>
 (function(){
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -455,6 +467,7 @@
   }
   function saveImages(imgs){
     localStorage.setItem('portfolio-images', JSON.stringify(imgs)); // let quota errors propagate — the caller shows the user what happened
+    SiteSync.save('portfolio-images', imgs);
   }
 
   let images = loadImages();
@@ -483,6 +496,7 @@
           item.style.backgroundImage = `url('${img.url}')`;
           item.dataset.imgUrl = img.url;
           item.dataset.caption = img.caption || '';
+          item.dataset.imgId = img.id;
         } else {
           item.style.background = img.bg || 'linear-gradient(135deg, #DCE3EC, #F5F3ED)';
         }
@@ -544,7 +558,7 @@
       // a pointerdown/up with no real movement in between counts as a
       // click on whatever image was under it, rather than a drag
       if (st.dragging && !st.moved && st.downTarget && st.downTarget.dataset.imgUrl){
-        openLightbox(st.downTarget.dataset.imgUrl, st.downTarget.dataset.caption);
+        openLightbox(st.downTarget.dataset.imgUrl, st.downTarget.dataset.caption, st.downTarget.dataset.imgId);
       }
       st.dragging = false;
       st.downTarget = null;
@@ -557,15 +571,25 @@
   }
 
   // ---------- lightbox ----------
-  function openLightbox(url, caption){
+  let lightboxImgId = null;
+  function openLightbox(url, caption, imgId){
     document.getElementById('lightbox-img').src = url;
     document.getElementById('lightbox-cap').textContent = caption || '';
+    lightboxImgId = imgId || null;
     document.getElementById('lightbox-overlay').classList.add('open');
   }
   function closeLightbox(){
     document.getElementById('lightbox-overlay').classList.remove('open');
+    lightboxImgId = null;
   }
   document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+  document.getElementById('lightbox-delete').addEventListener('click', () => {
+    if (!lightboxImgId) return;
+    images = images.filter(img => img.id !== lightboxImgId);
+    try { saveImages(images); } catch(e){}
+    closeLightbox();
+    renderBelt();
+  });
   document.getElementById('lightbox-overlay').addEventListener('click', e => {
     if (e.target.id === 'lightbox-overlay') closeLightbox();
   });
@@ -606,6 +630,17 @@
   });
   requestAnimationFrame(beltFrame);
   window.addEventListener('resize', () => BELT_TRACK_IDS.forEach(measureBelt));
+
+  // check the cloud for a fresher copy (e.g. a photo added on another
+  // device) after the initial local render, so the page never sits
+  // blank waiting on the network but still catches up shortly after
+  (async () => {
+    const fresher = await SiteSync.loadFreshest('portfolio-images', true);
+    if (fresher && JSON.stringify(fresher) !== JSON.stringify(images)){
+      images = fresher;
+      renderBelt();
+    }
+  })();
 
   // ---------- add picture modal ----------
   const overlay = document.getElementById('modal-overlay');

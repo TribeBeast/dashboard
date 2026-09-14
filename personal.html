@@ -980,58 +980,56 @@
 
     const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
 
-    // Personal is a small cratered moon rather than a ringed planet —
-    // no ring, round craters instead of bands, and tiny sparkle
-    // companions drifting nearby instead of a plain orbiting moon
-    const core = document.createElementNS(svgNS, 'circle');
-    core.setAttribute('r', 19);
-    core.setAttribute('fill', 'var(--you-core)');
-    core.setAttribute('stroke', 'var(--you-shadow)');
-    core.setAttribute('stroke-width', '1.2');
-    core.setAttribute('filter', 'url(#starglow)');
-
-    const craterSpots = [
-      { cx: -6, cy: -5, r: 5.5 },
-      { cx: 7, cy: 3, r: 4 },
-      { cx: -2, cy: 9, r: 3.2 },
-      { cx: 9, cy: -8, r: 2.6 },
+    // Personal is a geode — a burst of angular crystal shards from a
+    // central point, not a circle at all. Genuinely different silhouette
+    // from every other node on the site, fitting a personal/one-of-a-
+    // kind feel.
+    function makeShard(angleDeg, len, baseW, tipW, amt){
+      const a = angleDeg * Math.PI/180;
+      const dx = Math.cos(a), dy = Math.sin(a);
+      const px = -dy, py = dx;
+      const bx = dx*3, by = dy*3;
+      const tx = dx*len, ty = dy*len;
+      const d = `M${(bx+px*baseW).toFixed(1)},${(by+py*baseW).toFixed(1)} `
+              + `L${(tx+px*tipW).toFixed(1)},${(ty+py*tipW).toFixed(1)} `
+              + `L${(tx-px*tipW).toFixed(1)},${(ty-py*tipW).toFixed(1)} `
+              + `L${(bx-px*baseW).toFixed(1)},${(by-py*baseW).toFixed(1)} Z`;
+      const shard = document.createElementNS(svgNS, 'path');
+      shard.setAttribute('d', d);
+      shard.setAttribute('fill', amt >= 0 ? lighten(youCoreHex, amt) : darken(youCoreHex, -amt));
+      shard.setAttribute('stroke', darken(youCoreHex, 0.35));
+      shard.setAttribute('stroke-width', '0.5');
+      shard.setAttribute('filter', 'url(#starglow)');
+      return shard;
+    }
+    const shardDefs = [
+      { a: -100, len: 21, baseW: 4.5, tipW: 1, amt: 0.4 },
+      { a: -55, len: 25, baseW: 5, tipW: 1.2, amt: -0.15 },
+      { a: -12, len: 18, baseW: 4, tipW: 0.9, amt: 0.55 },
+      { a: 28, len: 27, baseW: 5.5, tipW: 1.3, amt: -0.25 },
+      { a: 75, len: 20, baseW: 4.2, tipW: 1, amt: 0.25 },
+      { a: 122, len: 24, baseW: 5, tipW: 1.1, amt: -0.1 },
+      { a: 168, len: 19, baseW: 4, tipW: 0.9, amt: 0.5 },
+      { a: -145, len: 16, baseW: 3.5, tipW: 0.8, amt: -0.3 },
     ];
-    const craters = [];
-    craterSpots.forEach(c => {
-      const crater = document.createElementNS(svgNS, 'circle');
-      crater.setAttribute('cx', c.cx); crater.setAttribute('cy', c.cy);
-      crater.setAttribute('r', c.r);
-      crater.setAttribute('fill', darken(youCoreHex, 0.18));
-      crater.setAttribute('opacity', '0.55');
-      crater.setAttribute('clip-path', 'url(#circleClip)');
-      craters.push(crater);
-      // a thin lighter rim on each crater, like a raised edge catching
-      // the light — a bit more dimension than a flat dark circle alone
-      const rimHighlight = document.createElementNS(svgNS, 'circle');
-      rimHighlight.setAttribute('cx', c.cx); rimHighlight.setAttribute('cy', c.cy);
-      rimHighlight.setAttribute('r', c.r);
-      rimHighlight.setAttribute('fill', 'none');
-      rimHighlight.setAttribute('stroke', lighten(youCoreHex, 0.3));
-      rimHighlight.setAttribute('stroke-width', '0.5');
-      rimHighlight.setAttribute('opacity', '0.4');
-      rimHighlight.setAttribute('clip-path', 'url(#circleClip)');
-      craters.push(rimHighlight);
-    });
-    const shine = document.createElementNS(svgNS, 'ellipse');
-    shine.setAttribute('cx', -8); shine.setAttribute('cy', -9);
-    shine.setAttribute('rx', 6); shine.setAttribute('ry', 4.5);
-    shine.setAttribute('fill', lighten(youCoreHex, 0.45));
-    shine.setAttribute('opacity', '0.65');
-    shine.setAttribute('clip-path', 'url(#circleClip)');
+    const shards = shardDefs.map(s => makeShard(s.a, s.len, s.baseW, s.tipW, s.amt));
 
-    // a faint dotted dust ring, further out than the sparkle companions
+    // a small bright crystal-point glint at the very center, where all
+    // the facets meet
+    const centerGlint = document.createElementNS(svgNS, 'circle');
+    centerGlint.setAttribute('r', 3);
+    centerGlint.setAttribute('fill', lighten(youCoreHex, 0.65));
+    centerGlint.setAttribute('stroke', darken(youCoreHex, 0.3));
+    centerGlint.setAttribute('stroke-width', '0.5');
+
+    // a faint dotted dust halo, further out than the sparkle companions
     const dustRing = document.createElementNS(svgNS, 'circle');
-    dustRing.setAttribute('r', 27);
+    dustRing.setAttribute('r', 33);
     dustRing.setAttribute('fill', 'none');
     dustRing.setAttribute('stroke', 'var(--you-glow)');
     dustRing.setAttribute('stroke-width', '0.7');
     dustRing.setAttribute('stroke-dasharray', '0.5,3');
-    dustRing.setAttribute('opacity', '0.35');
+    dustRing.setAttribute('opacity', '0.3');
 
     // two tiny sparkle companions, each on their own slow orbit
     function makeSparkleCompanion(radius, dur, size){
@@ -1053,15 +1051,8 @@
       }
       return wrap;
     }
-    const sparkle1 = makeSparkleCompanion(32, (13 + Math.random()*4).toFixed(1), 3);
-    const sparkle2 = makeSparkleCompanion(24, (9 + Math.random()*3).toFixed(1), 2.2);
-
-    const rim = document.createElementNS(svgNS, 'circle');
-    rim.setAttribute('r', 19.5);
-    rim.setAttribute('fill', 'none');
-    rim.setAttribute('stroke', 'var(--you-glow)');
-    rim.setAttribute('stroke-width', '0.7');
-    rim.setAttribute('opacity', '0.55');
+    const sparkle1 = makeSparkleCompanion(38, (13 + Math.random()*4).toFixed(1), 3);
+    const sparkle2 = makeSparkleCompanion(29, (9 + Math.random()*3).toFixed(1), 2.2);
 
     const label = document.createElementNS(svgNS, 'text');
     label.setAttribute('class', 'you-label');
@@ -1070,13 +1061,11 @@
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
-    you.appendChild(core);
-    craters.forEach(c => you.appendChild(c));
-    you.appendChild(shine);
     you.appendChild(dustRing);
+    shards.forEach(s => you.appendChild(s));
+    you.appendChild(centerGlint);
     you.appendChild(sparkle1);
     you.appendChild(sparkle2);
-    you.appendChild(rim);
     you.appendChild(label);
     g.appendChild(you);
     gEls.you = you;
@@ -1270,6 +1259,7 @@
 
     const dur = 420;
     let startTs = null;
+    let navigated = false;
 
     function frame(ts){
       if (startTs === null) startTs = ts;
@@ -1294,16 +1284,23 @@
         o._group.style.opacity = String(Math.max(0, 1 - p*1.6));
       });
 
-      if (t < 1){
-        requestAnimationFrame(frame);
-      } else {
+      // start the actual page navigation a bit before the animation
+      // visually finishes, rather than waiting for a full stop — the
+      // browser begins swapping pages while the last bit of motion is
+      // still playing, which is what makes it read as one continuous
+      // motion instead of "stop, then jump"
+      if (!navigated && t >= 0.7){
+        navigated = true;
         const flash = document.getElementById('warp-flash');
         flash.style.background = `radial-gradient(circle at 50% 50%, ${n.color || CATS[n.category]?.hex || '#fff'} 0%, transparent 70%)`;
         flash.style.transition = 'opacity 180ms ease';
         flash.style.opacity = '0.7';
-        setTimeout(() => { flash.style.opacity = '0'; }, 180);
         window.location.href = url;
+      }
 
+      if (t < 1){
+        requestAnimationFrame(frame);
+      } else {
         // safety net: if navigation doesn't actually happen, restore
         // the page instead of leaving it faded out and locked forever
         setTimeout(() => {

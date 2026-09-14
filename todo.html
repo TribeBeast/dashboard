@@ -1176,88 +1176,99 @@
 
     const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
 
+    // To-do is a clockwork gear mechanism — visible teeth around the
+    // rim, a smaller meshing gear alongside it, and a sweeping second
+    // hand, for a "things ticking along, getting done" feel rather
+    // than a planet.
     const core = document.createElementNS(svgNS, 'circle');
-    core.setAttribute('r', 19);
+    core.setAttribute('r', 17);
     core.setAttribute('fill', 'var(--you-core)');
     core.setAttribute('stroke', 'var(--you-shadow)');
     core.setAttribute('stroke-width', '1.2');
     core.setAttribute('filter', 'url(#starglow)');
 
-    // textured surface — a couple of organic bands and a small accent
-    // spot, clipped to the core's own circle, giving it a painted,
-    // planetary look instead of a single flat fill
-    const bandDark = document.createElementNS(svgNS, 'ellipse');
-    bandDark.setAttribute('cx', 2); bandDark.setAttribute('cy', 9);
-    bandDark.setAttribute('rx', 22); bandDark.setAttribute('ry', 7);
-    bandDark.setAttribute('transform', 'rotate(-9)');
-    bandDark.setAttribute('fill', darken(youCoreHex, 0.22));
-    bandDark.setAttribute('opacity', '0.75');
-    bandDark.setAttribute('clip-path', 'url(#circleClip)');
-
-    const bandLight = document.createElementNS(svgNS, 'ellipse');
-    bandLight.setAttribute('cx', -4); bandLight.setAttribute('cy', -8);
-    bandLight.setAttribute('rx', 20); bandLight.setAttribute('ry', 6);
-    bandLight.setAttribute('transform', 'rotate(11)');
-    bandLight.setAttribute('fill', lighten(youCoreHex, 0.38));
-    bandLight.setAttribute('opacity', '0.8');
-    bandLight.setAttribute('clip-path', 'url(#circleClip)');
-
-    const spot = document.createElementNS(svgNS, 'ellipse');
-    spot.setAttribute('cx', 6); spot.setAttribute('cy', 2);
-    spot.setAttribute('rx', 4); spot.setAttribute('ry', 2.6);
-    spot.setAttribute('fill', lighten(youCoreHex, 0.68));
-    spot.setAttribute('opacity', '0.85');
-    spot.setAttribute('clip-path', 'url(#circleClip)');
-
-    // a faint dashed "track" ring for each moon's orbit — reads like a
-    // checklist track, tying the three-moon idea to the page's purpose
-    function makeTrack(radius){
-      const track = document.createElementNS(svgNS, 'circle');
-      track.setAttribute('r', radius);
-      track.setAttribute('fill', 'none');
-      track.setAttribute('stroke', 'var(--you-glow)');
-      track.setAttribute('stroke-width', '0.6');
-      track.setAttribute('stroke-dasharray', '0.5,3');
-      track.setAttribute('opacity', '0.3');
-      return track;
+    // gear teeth around the main gear's rim
+    const mainTeeth = document.createElementNS(svgNS, 'g');
+    for (let i = 0; i < 12; i++){
+      const tooth = document.createElementNS(svgNS, 'rect');
+      tooth.setAttribute('x', -1.3); tooth.setAttribute('y', -19.5);
+      tooth.setAttribute('width', '2.6'); tooth.setAttribute('height', '3');
+      tooth.setAttribute('fill', darken(youCoreHex, 0.25));
+      tooth.setAttribute('stroke', darken(youCoreHex, 0.4));
+      tooth.setAttribute('stroke-width', '0.3');
+      tooth.setAttribute('transform', `rotate(${(360/12)*i})`);
+      mainTeeth.appendChild(tooth);
     }
-    const track1 = makeTrack(36);
-    const track2 = makeTrack(28);
-    const track3 = makeTrack(21);
 
-    // three moons instead of one — one for each of the three orbiting
-    // hubs (School, RA, Lab) this page ties together
-    function makeMoon(radius, size, dur, reverse){
-      const wrap = document.createElementNS(svgNS, 'g');
-      const m = document.createElementNS(svgNS, 'circle');
-      m.setAttribute('cx', radius); m.setAttribute('cy', 0);
-      m.setAttribute('r', size);
-      m.setAttribute('fill', lighten(youCoreHex, 0.55));
-      m.setAttribute('stroke', darken(youCoreHex, 0.3));
-      m.setAttribute('stroke-width', '0.5');
-      wrap.appendChild(m);
-      if (!reduceMotion){
-        const anim = document.createElementNS(svgNS, 'animateTransform');
-        anim.setAttribute('attributeName', 'transform');
-        anim.setAttribute('type', 'rotate');
-        anim.setAttribute('from', reverse ? '360 0 0' : '0 0 0');
-        anim.setAttribute('to', reverse ? '0 0 0' : '360 0 0');
-        anim.setAttribute('dur', dur + 's');
-        anim.setAttribute('repeatCount', 'indefinite');
-        wrap.appendChild(anim);
-      }
-      return wrap;
+    // a ring of small bolts/rivets, a mechanical detail
+    const bolts = document.createElementNS(svgNS, 'g');
+    for (let i = 0; i < 6; i++){
+      const bolt = document.createElementNS(svgNS, 'circle');
+      const a = (Math.PI/180) * (60*i);
+      bolt.setAttribute('cx', (12*Math.cos(a)).toFixed(1));
+      bolt.setAttribute('cy', (12*Math.sin(a)).toFixed(1));
+      bolt.setAttribute('r', 1.3);
+      bolt.setAttribute('fill', darken(youCoreHex, 0.3));
+      bolt.setAttribute('opacity', '0.6');
+      bolts.appendChild(bolt);
     }
-    const moon1 = makeMoon(36, 2.3, (16 + Math.random()*5).toFixed(1), false);
-    const moon2 = makeMoon(28, 1.8, (11 + Math.random()*4).toFixed(1), true);
-    const moon3 = makeMoon(21, 1.4, (8 + Math.random()*3).toFixed(1), false);
 
-    const rim = document.createElementNS(svgNS, 'circle');
-    rim.setAttribute('r', 19.5);
-    rim.setAttribute('fill', 'none');
-    rim.setAttribute('stroke', 'var(--you-glow)');
-    rim.setAttribute('stroke-width', '0.7');
-    rim.setAttribute('opacity', '0.55');
+    // a sweeping second hand, continuously rotating
+    const handWrap = document.createElementNS(svgNS, 'g');
+    const hand = document.createElementNS(svgNS, 'line');
+    hand.setAttribute('x1', 0); hand.setAttribute('y1', 0);
+    hand.setAttribute('x2', 0); hand.setAttribute('y2', -14);
+    hand.setAttribute('stroke', darken(youCoreHex, 0.4));
+    hand.setAttribute('stroke-width', '1.2');
+    hand.setAttribute('stroke-linecap', 'round');
+    const handHub = document.createElementNS(svgNS, 'circle');
+    handHub.setAttribute('r', 1.6);
+    handHub.setAttribute('fill', darken(youCoreHex, 0.4));
+    handWrap.appendChild(hand);
+    handWrap.appendChild(handHub);
+    if (!reduceMotion){
+      const handAnim = document.createElementNS(svgNS, 'animateTransform');
+      handAnim.setAttribute('attributeName', 'transform');
+      handAnim.setAttribute('type', 'rotate');
+      handAnim.setAttribute('from', '0 0 0');
+      handAnim.setAttribute('to', '360 0 0');
+      handAnim.setAttribute('dur', '12s');
+      handAnim.setAttribute('repeatCount', 'indefinite');
+      handWrap.appendChild(handAnim);
+    }
+
+    // a smaller gear meshing alongside the main one
+    const smallGear = document.createElementNS(svgNS, 'g');
+    smallGear.setAttribute('transform', 'translate(29,16)');
+    const smallGearBody = document.createElementNS(svgNS, 'circle');
+    smallGearBody.setAttribute('r', 8);
+    smallGearBody.setAttribute('fill', lighten(youCoreHex, 0.15));
+    smallGearBody.setAttribute('stroke', darken(youCoreHex, 0.3));
+    smallGearBody.setAttribute('stroke-width', '1');
+    smallGear.appendChild(smallGearBody);
+    for (let i = 0; i < 8; i++){
+      const tooth = document.createElementNS(svgNS, 'rect');
+      tooth.setAttribute('x', -0.9); tooth.setAttribute('y', -8.8);
+      tooth.setAttribute('width', '1.8'); tooth.setAttribute('height', '2');
+      tooth.setAttribute('fill', darken(youCoreHex, 0.25));
+      tooth.setAttribute('transform', `rotate(${(360/8)*i})`);
+      smallGear.appendChild(tooth);
+    }
+    const smallGearHub = document.createElementNS(svgNS, 'circle');
+    smallGearHub.setAttribute('r', 1.8);
+    smallGearHub.setAttribute('fill', darken(youCoreHex, 0.35));
+    smallGear.appendChild(smallGearHub);
+    if (!reduceMotion){
+      const smallGearAnim = document.createElementNS(svgNS, 'animateTransform');
+      smallGearAnim.setAttribute('attributeName', 'transform');
+      smallGearAnim.setAttribute('type', 'rotate');
+      smallGearAnim.setAttribute('from', '360');
+      smallGearAnim.setAttribute('to', '0');
+      smallGearAnim.setAttribute('dur', '9s');
+      smallGearAnim.setAttribute('repeatCount', 'indefinite');
+      smallGearAnim.setAttribute('additive', 'sum');
+      smallGear.appendChild(smallGearAnim);
+    }
 
     const label = document.createElementNS(svgNS, 'text');
     label.setAttribute('class', 'you-label');
@@ -1266,17 +1277,11 @@
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
+    you.appendChild(smallGear);
+    you.appendChild(mainTeeth);
     you.appendChild(core);
-    you.appendChild(bandDark);
-    you.appendChild(bandLight);
-    you.appendChild(spot);
-    you.appendChild(track1);
-    you.appendChild(track2);
-    you.appendChild(track3);
-    you.appendChild(moon1);
-    you.appendChild(moon2);
-    you.appendChild(moon3);
-    you.appendChild(rim);
+    you.appendChild(bolts);
+    you.appendChild(handWrap);
     you.appendChild(label);
     g.appendChild(you);
     gEls.you = you;
@@ -1863,6 +1868,7 @@
 
     const dur = 420;
     let startTs = null;
+    let navigated = false;
 
     function frame(ts){
       if (startTs === null) startTs = ts;
@@ -1887,16 +1893,23 @@
         o._group.style.opacity = String(Math.max(0, 1 - p*1.6));
       });
 
-      if (t < 1){
-        requestAnimationFrame(frame);
-      } else {
+      // start the actual page navigation a bit before the animation
+      // visually finishes, rather than waiting for a full stop — the
+      // browser begins swapping pages while the last bit of motion is
+      // still playing, which is what makes it read as one continuous
+      // motion instead of "stop, then jump"
+      if (!navigated && t >= 0.7){
+        navigated = true;
         const flash = document.getElementById('warp-flash');
         flash.style.background = `radial-gradient(circle at 50% 50%, ${n.color || CATS[n.category]?.hex || '#fff'} 0%, transparent 70%)`;
         flash.style.transition = 'opacity 180ms ease';
         flash.style.opacity = '0.7';
-        setTimeout(() => { flash.style.opacity = '0'; }, 180);
         window.location.href = url;
+      }
 
+      if (t < 1){
+        requestAnimationFrame(frame);
+      } else {
         // safety net: if navigation doesn't actually happen, restore
         // the page instead of leaving it faded out and locked forever
         setTimeout(() => {

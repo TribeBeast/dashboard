@@ -978,103 +978,60 @@
 
     const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
 
-    // Photography is a pale pearl moon — no ring, no bands, just a
-    // smooth surface with a soft crescent phase-shadow and one or two
-    // faint craters, fitting the page's white/pearl palette
-    const core = document.createElementNS(svgNS, 'circle');
-    core.setAttribute('r', 19);
-    core.setAttribute('fill', 'var(--you-core)');
-    core.setAttribute('stroke', 'var(--you-shadow)');
-    core.setAttribute('stroke-width', '1.2');
-    core.setAttribute('filter', 'url(#starglow)');
+    // Photography is a total solar eclipse — a dark disc blocking the
+    // core, with bright corona rays visible around its rim and a single
+    // "diamond ring" glint where the last light escapes. A dramatic,
+    // classic photography subject, not another moon variant.
+    const coronaRays = document.createElementNS(svgNS, 'g');
+    const rayAngles = [0, 24, 48, 72, 96, 120, 144, 168, 192, 216, 240, 264, 288, 312, 336, 360];
+    rayAngles.forEach((deg, i) => {
+      const ray = document.createElementNS(svgNS, 'path');
+      const len = i % 3 === 0 ? 36 : (i % 3 === 1 ? 29 : 24);
+      const w = i % 3 === 0 ? 1.3 : 0.8;
+      ray.setAttribute('d', `M-${w},-16 L0,-${len} L${w},-16 Z`);
+      ray.setAttribute('transform', `rotate(${deg})`);
+      ray.setAttribute('fill', lighten(youCoreHex, 0.5));
+      ray.setAttribute('opacity', i % 3 === 0 ? '0.75' : '0.45');
+      coronaRays.appendChild(ray);
+    });
 
-    // a moon-phase crescent — an offset dark circle clipped to the
-    // core's own silhouette, leaving a lit crescent showing
-    const phaseShadow = document.createElementNS(svgNS, 'circle');
-    phaseShadow.setAttribute('cx', 9); phaseShadow.setAttribute('cy', 0);
-    phaseShadow.setAttribute('r', 17);
-    phaseShadow.setAttribute('fill', darken(youCoreHex, 0.3));
-    phaseShadow.setAttribute('opacity', '0.5');
-    phaseShadow.setAttribute('clip-path', 'url(#circleClip)');
+    // the eclipsed disc itself, dark, sitting on top of the corona rays
+    // so only their outer tips show past its edge
+    const darkDisc = document.createElementNS(svgNS, 'circle');
+    darkDisc.setAttribute('r', 19);
+    darkDisc.setAttribute('fill', darken(youCoreHex, 0.7));
+    darkDisc.setAttribute('stroke', darken(youCoreHex, 0.85));
+    darkDisc.setAttribute('stroke-width', '1');
+    darkDisc.setAttribute('filter', 'url(#starglow)');
 
-    const craterA = document.createElementNS(svgNS, 'circle');
-    craterA.setAttribute('cx', -8); craterA.setAttribute('cy', -6);
-    craterA.setAttribute('r', 2.8);
-    craterA.setAttribute('fill', darken(youCoreHex, 0.14));
-    craterA.setAttribute('opacity', '0.4');
-    craterA.setAttribute('clip-path', 'url(#circleClip)');
+    // the "diamond ring" — a single bright point right at the disc's
+    // rim, like the last bead of sunlight before totality
+    const diamondRing = document.createElementNS(svgNS, 'circle');
+    diamondRing.setAttribute('cx', 18.5); diamondRing.setAttribute('cy', -5);
+    diamondRing.setAttribute('r', 2.4);
+    diamondRing.setAttribute('fill', lighten(youCoreHex, 0.75));
 
-    const craterB = document.createElementNS(svgNS, 'circle');
-    craterB.setAttribute('cx', -4); craterB.setAttribute('cy', 5);
-    craterB.setAttribute('r', 1.8);
-    craterB.setAttribute('fill', darken(youCoreHex, 0.14));
-    craterB.setAttribute('opacity', '0.4');
-    craterB.setAttribute('clip-path', 'url(#circleClip)');
+    // a faint dotted halo further out, the extended corona
+    const coronaHalo = document.createElementNS(svgNS, 'circle');
+    coronaHalo.setAttribute('r', 40);
+    coronaHalo.setAttribute('fill', 'none');
+    coronaHalo.setAttribute('stroke', 'var(--you-glow)');
+    coronaHalo.setAttribute('stroke-width', '0.6');
+    coronaHalo.setAttribute('stroke-dasharray', '0.5,4');
+    coronaHalo.setAttribute('opacity', '0.3');
 
-    // a small glint right on the crescent's lit edge, like light
-    // catching the curve of a pearl
-    const pearlGlint = document.createElementNS(svgNS, 'circle');
-    pearlGlint.setAttribute('cx', -9); pearlGlint.setAttribute('cy', -3);
-    pearlGlint.setAttribute('r', 1.6);
-    pearlGlint.setAttribute('fill', lighten(youCoreHex, 0.6));
-    pearlGlint.setAttribute('opacity', '0.8');
-    pearlGlint.setAttribute('clip-path', 'url(#circleClip)');
-
-    // a faint dotted luster ring — a soft halo suggesting pearl sheen
-    const lusterRing = document.createElementNS(svgNS, 'circle');
-    lusterRing.setAttribute('r', 25);
-    lusterRing.setAttribute('fill', 'none');
-    lusterRing.setAttribute('stroke', 'var(--you-glow)');
-    lusterRing.setAttribute('stroke-width', '0.6');
-    lusterRing.setAttribute('stroke-dasharray', '0.5,2.5');
-    lusterRing.setAttribute('opacity', '0.4');
-
-    // one small, distant, pale moon in slow orbit
-    const moonOrbit = document.createElementNS(svgNS, 'g');
-    const moon = document.createElementNS(svgNS, 'circle');
-    moon.setAttribute('cx', 40); moon.setAttribute('cy', 0);
-    moon.setAttribute('r', 1.9);
-    moon.setAttribute('fill', lighten(youCoreHex, 0.4));
-    moon.setAttribute('stroke', darken(youCoreHex, 0.2));
-    moon.setAttribute('stroke-width', '0.5');
-    moonOrbit.appendChild(moon);
-    if (!reduceMotion){
-      const moonAnim = document.createElementNS(svgNS, 'animateTransform');
-      moonAnim.setAttribute('attributeName', 'transform');
-      moonAnim.setAttribute('type', 'rotate');
-      moonAnim.setAttribute('from', '0 0 0');
-      moonAnim.setAttribute('to', '360 0 0');
-      moonAnim.setAttribute('dur', (20 + Math.random()*6).toFixed(1) + 's');
-      moonAnim.setAttribute('repeatCount', 'indefinite');
-      moonOrbit.appendChild(moonAnim);
+    // a couple of small stars, visible only because the sky darkens
+    // during totality — a nice authentic detail
+    function makeTinyStar(x, y, size){
+      const s = document.createElementNS(svgNS, 'path');
+      s.setAttribute('d', `M0,-${size} L${size*0.18},-${size*0.18} L${size},0 L${size*0.18},${size*0.18} L0,${size} L-${size*0.18},${size*0.18} L-${size},0 L-${size*0.18},-${size*0.18} Z`);
+      s.setAttribute('transform', `translate(${x},${y})`);
+      s.setAttribute('fill', lighten(youCoreHex, 0.55));
+      s.setAttribute('opacity', '0.7');
+      return s;
     }
-
-    // a second, even smaller and closer moon
-    const moon2Orbit = document.createElementNS(svgNS, 'g');
-    const moon2 = document.createElementNS(svgNS, 'circle');
-    moon2.setAttribute('cx', -26); moon2.setAttribute('cy', 0);
-    moon2.setAttribute('r', 1.3);
-    moon2.setAttribute('fill', lighten(youCoreHex, 0.4));
-    moon2.setAttribute('stroke', darken(youCoreHex, 0.2));
-    moon2.setAttribute('stroke-width', '0.4');
-    moon2Orbit.appendChild(moon2);
-    if (!reduceMotion){
-      const moon2Anim = document.createElementNS(svgNS, 'animateTransform');
-      moon2Anim.setAttribute('attributeName', 'transform');
-      moon2Anim.setAttribute('type', 'rotate');
-      moon2Anim.setAttribute('from', '360 0 0');
-      moon2Anim.setAttribute('to', '0 0 0');
-      moon2Anim.setAttribute('dur', (10 + Math.random()*4).toFixed(1) + 's');
-      moon2Anim.setAttribute('repeatCount', 'indefinite');
-      moon2Orbit.appendChild(moon2Anim);
-    }
-
-    const rim = document.createElementNS(svgNS, 'circle');
-    rim.setAttribute('r', 19.5);
-    rim.setAttribute('fill', 'none');
-    rim.setAttribute('stroke', 'var(--you-glow)');
-    rim.setAttribute('stroke-width', '0.7');
-    rim.setAttribute('opacity', '0.55');
+    const tinyStar1 = makeTinyStar(-31, -14, 1.6);
+    const tinyStar2 = makeTinyStar(26, 20, 1.3);
 
     const label = document.createElementNS(svgNS, 'text');
     label.setAttribute('class', 'you-label');
@@ -1083,15 +1040,12 @@
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
-    you.appendChild(lusterRing);
-    you.appendChild(core);
-    you.appendChild(phaseShadow);
-    you.appendChild(craterA);
-    you.appendChild(craterB);
-    you.appendChild(pearlGlint);
-    you.appendChild(moonOrbit);
-    you.appendChild(moon2Orbit);
-    you.appendChild(rim);
+    you.appendChild(coronaHalo);
+    you.appendChild(tinyStar1);
+    you.appendChild(tinyStar2);
+    you.appendChild(coronaRays);
+    you.appendChild(darkDisc);
+    you.appendChild(diamondRing);
     you.appendChild(label);
     g.appendChild(you);
     gEls.you = you;
@@ -1285,6 +1239,7 @@
 
     const dur = 420;
     let startTs = null;
+    let navigated = false;
 
     function frame(ts){
       if (startTs === null) startTs = ts;
@@ -1309,16 +1264,23 @@
         o._group.style.opacity = String(Math.max(0, 1 - p*1.6));
       });
 
-      if (t < 1){
-        requestAnimationFrame(frame);
-      } else {
+      // start the actual page navigation a bit before the animation
+      // visually finishes, rather than waiting for a full stop — the
+      // browser begins swapping pages while the last bit of motion is
+      // still playing, which is what makes it read as one continuous
+      // motion instead of "stop, then jump"
+      if (!navigated && t >= 0.7){
+        navigated = true;
         const flash = document.getElementById('warp-flash');
         flash.style.background = `radial-gradient(circle at 50% 50%, ${n.color || CATS[n.category]?.hex || '#fff'} 0%, transparent 70%)`;
         flash.style.transition = 'opacity 180ms ease';
         flash.style.opacity = '0.7';
-        setTimeout(() => { flash.style.opacity = '0'; }, 180);
         window.location.href = url;
+      }
 
+      if (t < 1){
+        requestAnimationFrame(frame);
+      } else {
         // safety net: if navigation doesn't actually happen, restore
         // the page instead of leaving it faded out and locked forever
         setTimeout(() => {

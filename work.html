@@ -1426,6 +1426,7 @@
 
     const dur = 420;
     let startTs = null;
+    let navigated = false;
 
     function frame(ts){
       if (startTs === null) startTs = ts;
@@ -1450,16 +1451,23 @@
         o._group.style.opacity = String(Math.max(0, 1 - p*1.6));
       });
 
-      if (t < 1){
-        requestAnimationFrame(frame);
-      } else {
+      // start the actual page navigation a bit before the animation
+      // visually finishes, rather than waiting for a full stop — the
+      // browser begins swapping pages while the last bit of motion is
+      // still playing, which is what makes it read as one continuous
+      // motion instead of "stop, then jump"
+      if (!navigated && t >= 0.7){
+        navigated = true;
         const flash = document.getElementById('warp-flash');
         flash.style.background = `radial-gradient(circle at 50% 50%, ${n.color || CATS[n.category]?.hex || '#fff'} 0%, transparent 70%)`;
         flash.style.transition = 'opacity 180ms ease';
         flash.style.opacity = '0.7';
-        setTimeout(() => { flash.style.opacity = '0'; }, 180);
         window.location.href = url;
+      }
 
+      if (t < 1){
+        requestAnimationFrame(frame);
+      } else {
         // safety net: if navigation doesn't actually happen, restore
         // the page instead of leaving it faded out and locked forever
         setTimeout(() => {

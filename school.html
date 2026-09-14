@@ -979,111 +979,77 @@
 
     const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
 
-    // School gets a structured double-ring look — smooth core, no
-    // bands, two clean concentric rings for an orderly feel
-    const ringOuter = document.createElementNS(svgNS, 'ellipse');
-    ringOuter.setAttribute('rx', 33); ringOuter.setAttribute('ry', 8.5);
-    ringOuter.setAttribute('transform', 'rotate(-14)');
-    ringOuter.setAttribute('fill', 'none');
-    ringOuter.setAttribute('stroke', 'var(--you-glow)');
-    ringOuter.setAttribute('stroke-width', '1.4');
-    ringOuter.setAttribute('opacity', '0.5');
-
-    const ringInner = document.createElementNS(svgNS, 'ellipse');
-    ringInner.setAttribute('rx', 27); ringInner.setAttribute('ry', 7);
-    ringInner.setAttribute('transform', 'rotate(-14)');
-    ringInner.setAttribute('fill', 'none');
-    ringInner.setAttribute('stroke', 'var(--you-glow)');
-    ringInner.setAttribute('stroke-width', '1.1');
-    ringInner.setAttribute('opacity', '0.4');
+    // School is an orrery — a mechanical model of orbiting bodies, with
+    // visible rigid arms holding each moon rather than invisible orbit
+    // paths. A teaching-tool aesthetic, genuinely different in concept
+    // from a planet: mechanical brass-and-glass, not organic.
+    const baseRing = document.createElementNS(svgNS, 'circle');
+    baseRing.setAttribute('r', 4.5);
+    baseRing.setAttribute('fill', 'none');
+    baseRing.setAttribute('stroke', darken(youCoreHex, 0.35));
+    baseRing.setAttribute('stroke-width', '1.6');
 
     const core = document.createElementNS(svgNS, 'circle');
-    core.setAttribute('r', 19);
+    core.setAttribute('r', 16);
     core.setAttribute('fill', 'var(--you-core)');
     core.setAttribute('stroke', 'var(--you-shadow)');
     core.setAttribute('stroke-width', '1.2');
     core.setAttribute('filter', 'url(#starglow)');
 
-    // one soft highlight patch rather than mottled bands — smooth and
-    // even, matching the tidier double-ring look
+    // a small highlight patch, kept simple — most of the visual
+    // interest here comes from the mechanism, not surface texture
     const shine = document.createElementNS(svgNS, 'ellipse');
-    shine.setAttribute('cx', -5); shine.setAttribute('cy', -7);
-    shine.setAttribute('rx', 9); shine.setAttribute('ry', 7);
-    shine.setAttribute('fill', lighten(youCoreHex, 0.45));
-    shine.setAttribute('opacity', '0.7');
+    shine.setAttribute('cx', -4); shine.setAttribute('cy', -5);
+    shine.setAttribute('rx', 7); shine.setAttribute('ry', 5.5);
+    shine.setAttribute('fill', lighten(youCoreHex, 0.4));
+    shine.setAttribute('opacity', '0.65');
     shine.setAttribute('clip-path', 'url(#circleClip)');
 
-    // a small secondary shadow patch on the opposite side, for a touch
-    // more surface variation without going back to full mottled bands
-    const shade = document.createElementNS(svgNS, 'ellipse');
-    shade.setAttribute('cx', 7); shade.setAttribute('cy', 8);
-    shade.setAttribute('rx', 7); shade.setAttribute('ry', 5.5);
-    shade.setAttribute('fill', darken(youCoreHex, 0.16));
-    shade.setAttribute('opacity', '0.5');
-    shade.setAttribute('clip-path', 'url(#circleClip)');
-
-    // a faint outer dotted ring, further out than the two solid rings,
-    // for extra depth
-    const ringOuterFaint = document.createElementNS(svgNS, 'ellipse');
-    ringOuterFaint.setAttribute('rx', 39); ringOuterFaint.setAttribute('ry', 10);
-    ringOuterFaint.setAttribute('transform', 'rotate(-14)');
-    ringOuterFaint.setAttribute('fill', 'none');
-    ringOuterFaint.setAttribute('stroke', 'var(--you-glow)');
-    ringOuterFaint.setAttribute('stroke-width', '0.8');
-    ringOuterFaint.setAttribute('stroke-dasharray', '1,3.5');
-    ringOuterFaint.setAttribute('opacity', '0.35');
-
-    // a couple of small static sparkle flecks near the rings, for
-    // texture/richness beyond the rings and moons alone
-    function makeFleck(x, y, size){
-      const f = document.createElementNS(svgNS, 'path');
-      f.setAttribute('d', `M0,-${size} L${size*0.2},-${size*0.2} L${size},0 L${size*0.2},${size*0.2} L0,${size} L-${size*0.2},${size*0.2} L-${size},0 L-${size*0.2},-${size*0.2} Z`);
-      f.setAttribute('transform', `translate(${x},${y})`);
-      f.setAttribute('fill', lighten(youCoreHex, 0.6));
-      f.setAttribute('opacity', '0.75');
-      return f;
+    // gear teeth ringing the core's base, like the mechanism driving it
+    const teeth = document.createElementNS(svgNS, 'g');
+    for (let i = 0; i < 10; i++){
+      const tooth = document.createElementNS(svgNS, 'rect');
+      tooth.setAttribute('x', -1); tooth.setAttribute('y', -19.5);
+      tooth.setAttribute('width', '2'); tooth.setAttribute('height', '2.4');
+      tooth.setAttribute('fill', darken(youCoreHex, 0.3));
+      tooth.setAttribute('transform', `rotate(${(360/10)*i})`);
+      teeth.appendChild(tooth);
     }
-    const fleck1 = makeFleck(-30, 12, 1.8);
-    const fleck2 = makeFleck(24, -18, 1.4);
 
-    // two moons on independent orbits instead of one
-    const moonOrbit = document.createElementNS(svgNS, 'g');
-    const moon = document.createElementNS(svgNS, 'circle');
-    moon.setAttribute('cx', 38); moon.setAttribute('cy', 0);
-    moon.setAttribute('r', 2.2);
-    moon.setAttribute('fill', lighten(youCoreHex, 0.55));
-    moon.setAttribute('stroke', darken(youCoreHex, 0.3));
-    moon.setAttribute('stroke-width', '0.6');
-    moonOrbit.appendChild(moon);
-
-    const moon2Orbit = document.createElementNS(svgNS, 'g');
-    const moon2 = document.createElementNS(svgNS, 'circle');
-    moon2.setAttribute('cx', -27); moon2.setAttribute('cy', 0);
-    moon2.setAttribute('r', 1.7);
-    moon2.setAttribute('fill', lighten(youCoreHex, 0.55));
-    moon2.setAttribute('stroke', darken(youCoreHex, 0.3));
-    moon2.setAttribute('stroke-width', '0.5');
-    moon2Orbit.appendChild(moon2);
-
-    if (!reduceMotion){
-      const moonAnim = document.createElementNS(svgNS, 'animateTransform');
-      moonAnim.setAttribute('attributeName', 'transform');
-      moonAnim.setAttribute('type', 'rotate');
-      moonAnim.setAttribute('from', '0 0 0');
-      moonAnim.setAttribute('to', '360 0 0');
-      moonAnim.setAttribute('dur', (16 + Math.random()*6).toFixed(1) + 's');
-      moonAnim.setAttribute('repeatCount', 'indefinite');
-      moonOrbit.appendChild(moonAnim);
-
-      const moon2Anim = document.createElementNS(svgNS, 'animateTransform');
-      moon2Anim.setAttribute('attributeName', 'transform');
-      moon2Anim.setAttribute('type', 'rotate');
-      moon2Anim.setAttribute('from', '360 0 0');
-      moon2Anim.setAttribute('to', '0 0 0');
-      moon2Anim.setAttribute('dur', (11 + Math.random()*4).toFixed(1) + 's');
-      moon2Anim.setAttribute('repeatCount', 'indefinite');
-      moon2Orbit.appendChild(moon2Anim);
+    // three rigid orbital arms, each ending in a small orb — the whole
+    // arm+orb assembly rotates together as one unit, unlike a freely
+    // drifting moon, which is exactly the orrery look
+    function makeArm(radius, orbSize, dur, reverse, tilt){
+      const wrap = document.createElementNS(svgNS, 'g');
+      wrap.setAttribute('transform', `rotate(${tilt})`);
+      const arm = document.createElementNS(svgNS, 'line');
+      arm.setAttribute('x1', 0); arm.setAttribute('y1', 0);
+      arm.setAttribute('x2', radius); arm.setAttribute('y2', 0);
+      arm.setAttribute('stroke', darken(youCoreHex, 0.3));
+      arm.setAttribute('stroke-width', '1');
+      const orb = document.createElementNS(svgNS, 'circle');
+      orb.setAttribute('cx', radius); orb.setAttribute('cy', 0);
+      orb.setAttribute('r', orbSize);
+      orb.setAttribute('fill', lighten(youCoreHex, 0.5));
+      orb.setAttribute('stroke', darken(youCoreHex, 0.3));
+      orb.setAttribute('stroke-width', '0.5');
+      wrap.appendChild(arm);
+      wrap.appendChild(orb);
+      if (!reduceMotion){
+        const anim = document.createElementNS(svgNS, 'animateTransform');
+        anim.setAttribute('attributeName', 'transform');
+        anim.setAttribute('type', 'rotate');
+        anim.setAttribute('from', (reverse ? tilt+360 : tilt) + ' 0 0');
+        anim.setAttribute('to', (reverse ? tilt : tilt+360) + ' 0 0');
+        anim.setAttribute('dur', dur + 's');
+        anim.setAttribute('repeatCount', 'indefinite');
+        wrap.appendChild(anim);
+      }
+      return wrap;
     }
+    const arm1 = makeArm(38, 2.4, (14 + Math.random()*4).toFixed(1), false, 0);
+    const arm2 = makeArm(29, 1.9, (10 + Math.random()*3).toFixed(1), true, 130);
+    const arm3 = makeArm(21, 1.5, (7 + Math.random()*3).toFixed(1), false, 250);
 
     const rim = document.createElementNS(svgNS, 'circle');
     rim.setAttribute('r', 19.5);
@@ -1099,16 +1065,13 @@
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
-    you.appendChild(ringOuterFaint);
-    you.appendChild(ringOuter);
-    you.appendChild(ringInner);
+    you.appendChild(arm1);
+    you.appendChild(arm2);
+    you.appendChild(arm3);
+    you.appendChild(teeth);
     you.appendChild(core);
     you.appendChild(shine);
-    you.appendChild(shade);
-    you.appendChild(fleck1);
-    you.appendChild(fleck2);
-    you.appendChild(moonOrbit);
-    you.appendChild(moon2Orbit);
+    you.appendChild(baseRing);
     you.appendChild(rim);
     you.appendChild(label);
     g.appendChild(you);
@@ -1303,6 +1266,7 @@
 
     const dur = 420;
     let startTs = null;
+    let navigated = false;
 
     function frame(ts){
       if (startTs === null) startTs = ts;
@@ -1327,16 +1291,23 @@
         o._group.style.opacity = String(Math.max(0, 1 - p*1.6));
       });
 
-      if (t < 1){
-        requestAnimationFrame(frame);
-      } else {
+      // start the actual page navigation a bit before the animation
+      // visually finishes, rather than waiting for a full stop — the
+      // browser begins swapping pages while the last bit of motion is
+      // still playing, which is what makes it read as one continuous
+      // motion instead of "stop, then jump"
+      if (!navigated && t >= 0.7){
+        navigated = true;
         const flash = document.getElementById('warp-flash');
         flash.style.background = `radial-gradient(circle at 50% 50%, ${n.color || CATS[n.category]?.hex || '#fff'} 0%, transparent 70%)`;
         flash.style.transition = 'opacity 180ms ease';
         flash.style.opacity = '0.7';
-        setTimeout(() => { flash.style.opacity = '0'; }, 180);
         window.location.href = url;
+      }
 
+      if (t < 1){
+        requestAnimationFrame(frame);
+      } else {
         // safety net: if navigation doesn't actually happen, restore
         // the page instead of leaving it faded out and locked forever
         setTimeout(() => {

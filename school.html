@@ -327,6 +327,18 @@
     text-anchor: middle;
   }
   .you-node{ cursor: pointer; }
+  .sun-rays{
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: sun-spin 70s linear infinite;
+  }
+  @keyframes sun-spin{
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .sun-rays{ animation: none; }
+  }
   .you-halo{
     transform-box: fill-box;
     transform-origin: center;
@@ -979,102 +991,62 @@
 
     const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
 
-    // School is a classroom globe — tilted on its axis with visible
-    // latitude/longitude grid lines and continent shapes. Unmistakably
-    // tied to school itself, not another generic mechanical device.
-    const globeTilt = 23;
-    const globeGroup = document.createElementNS(svgNS, 'g');
-    globeGroup.setAttribute('transform', `rotate(${globeTilt})`);
+    // School is a round planet with colorful pencils poking out of its
+    // surface like a pincushion — still reads as a planet first (a
+    // solid circular core dominates the silhouette), with the fun,
+    // playful, multi-colored pencils as a surface feature rather than
+    // replacing the shape entirely.
+    const pencilColors = ['#F4C430', '#E74C3C', '#3498DB', '#2ECC71', '#F4C430', '#9B59B6', '#E67E22', '#3498DB'];
+    const pencilGroup = document.createElementNS(svgNS, 'g');
+    pencilGroup.setAttribute('class', 'sun-rays'); // reuses the slow-spin animation already defined
+    const pencilCount = 8;
+    for (let i = 0; i < pencilCount; i++){
+      const pencil = document.createElementNS(svgNS, 'g');
+      pencil.setAttribute('transform', `rotate(${(360/pencilCount)*i})`);
+      const color = pencilColors[i % pencilColors.length];
 
+      // short body — most of its length sits "inside" the planet core
+      // (which gets drawn on top), only the tip and a little color
+      // poking out past the surface
+      const body = document.createElementNS(svgNS, 'rect');
+      body.setAttribute('x', -1.6); body.setAttribute('y', -25);
+      body.setAttribute('width', 3.2); body.setAttribute('height', 12);
+      body.setAttribute('fill', color);
+      body.setAttribute('stroke', darken(color, 0.3));
+      body.setAttribute('stroke-width', '0.4');
+      pencil.appendChild(body);
+
+      const wood = document.createElementNS(svgNS, 'path');
+      wood.setAttribute('d', 'M-1.6,-25 L1.6,-25 L0.8,-28 L-0.8,-28 Z');
+      wood.setAttribute('fill', '#E8C79A');
+      wood.setAttribute('stroke', darken('#E8C79A', 0.25));
+      wood.setAttribute('stroke-width', '0.3');
+      pencil.appendChild(wood);
+
+      const tip = document.createElementNS(svgNS, 'path');
+      tip.setAttribute('d', 'M-0.8,-28 L0.8,-28 L0,-30 Z');
+      tip.setAttribute('fill', '#4A4A4A');
+      pencil.appendChild(tip);
+
+      pencilGroup.appendChild(pencil);
+    }
+
+    // the planet core itself — this is what keeps it reading as a
+    // planet, drawn on top of the pencils' inner ends so only their
+    // tips and a bit of color show past the surface
     const core = document.createElementNS(svgNS, 'circle');
-    core.setAttribute('r', 18);
+    core.setAttribute('r', 17);
     core.setAttribute('fill', 'var(--you-core)');
     core.setAttribute('stroke', 'var(--you-shadow)');
     core.setAttribute('stroke-width', '1.2');
     core.setAttribute('filter', 'url(#starglow)');
-    globeGroup.appendChild(core);
 
-    // longitude lines — vertical ellipses of decreasing width, all
-    // sharing the same top/bottom poles
-    for (let i = 0; i < 4; i++){
-      const lon = document.createElementNS(svgNS, 'ellipse');
-      const rx = [18, 13, 7, 2.5][i];
-      lon.setAttribute('rx', rx); lon.setAttribute('ry', 18);
-      lon.setAttribute('fill', 'none');
-      lon.setAttribute('stroke', darken(youCoreHex, 0.28));
-      lon.setAttribute('stroke-width', '0.6');
-      lon.setAttribute('opacity', '0.55');
-      lon.setAttribute('clip-path', 'url(#circleClip)');
-      globeGroup.appendChild(lon);
-    }
-    // latitude lines — horizontal ellipses stacked at different heights
-    const latRows = [-11, -5.5, 0, 5.5, 11];
-    latRows.forEach(y => {
-      const width = Math.sqrt(Math.max(0, 18*18 - y*y));
-      const lat = document.createElementNS(svgNS, 'ellipse');
-      lat.setAttribute('cy', y);
-      lat.setAttribute('rx', width); lat.setAttribute('ry', 2.2);
-      lat.setAttribute('fill', 'none');
-      lat.setAttribute('stroke', darken(youCoreHex, 0.28));
-      lat.setAttribute('stroke-width', '0.6');
-      lat.setAttribute('opacity', '0.5');
-      lat.setAttribute('clip-path', 'url(#circleClip)');
-      globeGroup.appendChild(lat);
-    });
-
-    // a few irregular "continent" patches
-    function makeContinent(cx, cy, w, h, rot){
-      const cont = document.createElementNS(svgNS, 'ellipse');
-      cont.setAttribute('cx', cx); cont.setAttribute('cy', cy);
-      cont.setAttribute('rx', w); cont.setAttribute('ry', h);
-      cont.setAttribute('transform', `rotate(${rot} ${cx} ${cy})`);
-      cont.setAttribute('fill', darken(youCoreHex, 0.2));
-      cont.setAttribute('opacity', '0.6');
-      cont.setAttribute('clip-path', 'url(#circleClip)');
-      return cont;
-    }
-    globeGroup.appendChild(makeContinent(-6, -6, 6, 4, -20));
-    globeGroup.appendChild(makeContinent(5, 2, 5, 3.2, 15));
-    globeGroup.appendChild(makeContinent(-3, 9, 4, 2.6, 5));
-    globeGroup.appendChild(makeContinent(8, -9, 3.5, 2.4, -30));
-
-    // a small equatorial shine for a touch of gloss
     const shine = document.createElementNS(svgNS, 'ellipse');
-    shine.setAttribute('cx', -6); shine.setAttribute('cy', -8);
-    shine.setAttribute('rx', 6); shine.setAttribute('ry', 4);
+    shine.setAttribute('cx', -5); shine.setAttribute('cy', -6);
+    shine.setAttribute('rx', 7); shine.setAttribute('ry', 5.5);
     shine.setAttribute('fill', lighten(youCoreHex, 0.4));
-    shine.setAttribute('opacity', '0.4');
+    shine.setAttribute('opacity', '0.55');
     shine.setAttribute('clip-path', 'url(#circleClip)');
-    globeGroup.appendChild(shine);
-
-    // the metal axis rod, poking out slightly past both poles
-    const axisRod = document.createElementNS(svgNS, 'line');
-    axisRod.setAttribute('x1', 0); axisRod.setAttribute('y1', -23);
-    axisRod.setAttribute('x2', 0); axisRod.setAttribute('y2', 23);
-    axisRod.setAttribute('stroke', darken(youCoreHex, 0.45));
-    axisRod.setAttribute('stroke-width', '1');
-    globeGroup.appendChild(axisRod);
-    const poleCapTop = document.createElementNS(svgNS, 'circle');
-    poleCapTop.setAttribute('cy', -23); poleCapTop.setAttribute('r', 1.2);
-    poleCapTop.setAttribute('fill', darken(youCoreHex, 0.5));
-    globeGroup.appendChild(poleCapTop);
-    const poleCapBottom = document.createElementNS(svgNS, 'circle');
-    poleCapBottom.setAttribute('cy', 23); poleCapBottom.setAttribute('r', 1.2);
-    poleCapBottom.setAttribute('fill', darken(youCoreHex, 0.5));
-    globeGroup.appendChild(poleCapBottom);
-
-    // the whole globe spins slowly on its axis
-    if (!reduceMotion){
-      const spinAnim = document.createElementNS(svgNS, 'animateTransform');
-      spinAnim.setAttribute('attributeName', 'transform');
-      spinAnim.setAttribute('type', 'rotate');
-      spinAnim.setAttribute('from', '0');
-      spinAnim.setAttribute('to', '360');
-      spinAnim.setAttribute('dur', '40s');
-      spinAnim.setAttribute('repeatCount', 'indefinite');
-      spinAnim.setAttribute('additive', 'sum');
-      globeGroup.appendChild(spinAnim);
-    }
 
     const rim = document.createElementNS(svgNS, 'circle');
     rim.setAttribute('r', 19.5);
@@ -1090,7 +1062,9 @@
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
-    you.appendChild(globeGroup);
+    you.appendChild(pencilGroup);
+    you.appendChild(core);
+    you.appendChild(shine);
     you.appendChild(rim);
     you.appendChild(label);
     g.appendChild(you);
@@ -1315,7 +1289,7 @@
       // browser begins swapping pages while the last bit of motion is
       // still playing, which is what makes it read as one continuous
       // motion instead of "stop, then jump"
-      if (!navigated && t >= 0.7){
+      if (!navigated && t >= 0.88){
         navigated = true;
         const flash = document.getElementById('warp-flash');
         flash.style.background = `radial-gradient(circle at 50% 50%, ${n.color || CATS[n.category]?.hex || '#fff'} 0%, transparent 70%)`;
@@ -1392,6 +1366,7 @@
 
     const dur = 560;
     let startTs = null;
+    let navigated = false;
 
     function frame(ts){
       if (startTs === null) startTs = ts;
@@ -1406,11 +1381,17 @@
       // the backdrop recedes too, more gently than the foreground
       if (bg) bg.style.transform = `translate(${pan.x*0.4}px, ${pan.y*0.4}px) scale(${lerp(1, 0.55, p)})`;
 
+      // start navigating shortly before the animation visually
+      // finishes, same idea as warpTo — carries the motion through
+      // into the next page instead of a dead stop then a jump
+      if (!navigated && t >= 0.88){
+        navigated = true;
+        window.location.href = 'index.html';
+      }
+
       if (t < 1){
         requestAnimationFrame(frame);
       } else {
-        window.location.href = 'index.html';
-
         // safety net: restore interactivity if navigation didn't
         // actually happen, instead of leaving the graph locked
         setTimeout(() => {

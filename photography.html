@@ -978,16 +978,40 @@
 
     const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
 
-    // Photography is a small fanned stack of white-bordered photo
-    // prints — directly about photography itself (the prints it
-    // produces), genuinely white/pale to match the page, and distinct
-    // from both Home's sun and Portfolio's camera. Every shape here is
-    // part of an actual print (card, photo area, border) — nothing
-    // decorative just floating on its own.
-    function makePrint(x, y, rot, w, h, bottomBorder){
-      const wrap = document.createElementNS(svgNS, 'g');
-      wrap.setAttribute('transform', `translate(${x},${y}) rotate(${rot})`);
+    // Photography is a round pearl planet with a filmstrip perforation
+    // ring and a single small print tucked against its edge — still
+    // reads as a planet first, with the photography motifs as surface
+    // detail rather than replacing the circular shape entirely.
+    const core = document.createElementNS(svgNS, 'circle');
+    core.setAttribute('r', 18);
+    core.setAttribute('fill', 'var(--you-core)');
+    core.setAttribute('stroke', 'var(--you-shadow)');
+    core.setAttribute('stroke-width', '1.2');
+    core.setAttribute('filter', 'url(#starglow)');
 
+    const shine = document.createElementNS(svgNS, 'ellipse');
+    shine.setAttribute('cx', -6); shine.setAttribute('cy', -7);
+    shine.setAttribute('rx', 7); shine.setAttribute('ry', 5.5);
+    shine.setAttribute('fill', lighten(youCoreHex, 0.35));
+    shine.setAttribute('opacity', '0.5');
+    shine.setAttribute('clip-path', 'url(#circleClip)');
+
+    // a ring of small film-sprocket perforations, like a filmstrip
+    // wrapped around the planet
+    const sprockets = document.createElementNS(svgNS, 'g');
+    for (let i = 0; i < 16; i++){
+      const hole = document.createElementNS(svgNS, 'rect');
+      hole.setAttribute('x', -0.9); hole.setAttribute('y', -25.5);
+      hole.setAttribute('width', '1.8'); hole.setAttribute('height', '1.4');
+      hole.setAttribute('rx', '0.3');
+      hole.setAttribute('fill', darken(youCoreHex, 0.35));
+      hole.setAttribute('transform', `rotate(${(360/16)*i})`);
+      sprockets.appendChild(hole);
+    }
+
+    // one small print, tucked against the planet's edge like a sticker
+    function makePrint(w, h, bottomBorder){
+      const wrap = document.createElementNS(svgNS, 'g');
       const card = document.createElementNS(svgNS, 'rect');
       card.setAttribute('x', -w/2); card.setAttribute('y', -h/2);
       card.setAttribute('width', w); card.setAttribute('height', h);
@@ -996,30 +1020,29 @@
       card.setAttribute('stroke', darken(youCoreHex, 0.3));
       card.setAttribute('stroke-width', '0.5');
       wrap.appendChild(card);
-
-      // the photo area, leaving a white border on all sides and a
-      // wider one at the bottom — the classic instant-print look
       const photoH = h - bottomBorder - 3;
       const photo = document.createElementNS(svgNS, 'rect');
-      photo.setAttribute('x', -w/2 + 1.4); photo.setAttribute('y', -h/2 + 1.4);
-      photo.setAttribute('width', w - 2.8); photo.setAttribute('height', photoH);
+      photo.setAttribute('x', -w/2 + 1.2); photo.setAttribute('y', -h/2 + 1.2);
+      photo.setAttribute('width', w - 2.4); photo.setAttribute('height', photoH);
       photo.setAttribute('fill', darken(youCoreHex, 0.12));
       wrap.appendChild(photo);
-
-      // a simple horizon split within the photo area — just enough to
-      // read as "a photo of something" without drawing a literal icon
       const groundH = photoH * 0.32;
       const ground = document.createElementNS(svgNS, 'rect');
-      ground.setAttribute('x', -w/2 + 1.4); ground.setAttribute('y', -h/2 + 1.4 + photoH - groundH);
-      ground.setAttribute('width', w - 2.8); ground.setAttribute('height', groundH);
+      ground.setAttribute('x', -w/2 + 1.2); ground.setAttribute('y', -h/2 + 1.2 + photoH - groundH);
+      ground.setAttribute('width', w - 2.4); ground.setAttribute('height', groundH);
       ground.setAttribute('fill', darken(youCoreHex, 0.22));
       wrap.appendChild(ground);
-
       return wrap;
     }
-    const printBack = makePrint(-3, 3, -16, 17, 21, 4.5);
-    const printMid = makePrint(4, -1, 9, 17, 21, 4.5);
-    const printFront = makePrint(-1, -5, -3, 17, 21, 4.5);
+    const print = makePrint(13, 16, 3.5);
+    print.setAttribute('transform', 'translate(15,15) rotate(12)');
+
+    const rim = document.createElementNS(svgNS, 'circle');
+    rim.setAttribute('r', 19.5);
+    rim.setAttribute('fill', 'none');
+    rim.setAttribute('stroke', 'var(--you-glow)');
+    rim.setAttribute('stroke-width', '0.7');
+    rim.setAttribute('opacity', '0.55');
 
     const label = document.createElementNS(svgNS, 'text');
     label.setAttribute('class', 'you-label');
@@ -1028,9 +1051,11 @@
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
-    you.appendChild(printBack);
-    you.appendChild(printMid);
-    you.appendChild(printFront);
+    you.appendChild(core);
+    you.appendChild(shine);
+    you.appendChild(sprockets);
+    you.appendChild(print);
+    you.appendChild(rim);
     you.appendChild(label);
     g.appendChild(you);
     gEls.you = you;
@@ -1254,7 +1279,7 @@
       // browser begins swapping pages while the last bit of motion is
       // still playing, which is what makes it read as one continuous
       // motion instead of "stop, then jump"
-      if (!navigated && t >= 0.7){
+      if (!navigated && t >= 0.88){
         navigated = true;
         const flash = document.getElementById('warp-flash');
         flash.style.background = `radial-gradient(circle at 50% 50%, ${n.color || CATS[n.category]?.hex || '#fff'} 0%, transparent 70%)`;
@@ -1331,6 +1356,7 @@
 
     const dur = 560;
     let startTs = null;
+    let navigated = false;
 
     function frame(ts){
       if (startTs === null) startTs = ts;
@@ -1345,11 +1371,17 @@
       // the backdrop recedes too, more gently than the foreground
       if (bg) bg.style.transform = `translate(${pan.x*0.4}px, ${pan.y*0.4}px) scale(${lerp(1, 0.55, p)})`;
 
+      // start navigating shortly before the animation visually
+      // finishes, same idea as warpTo — carries the motion through
+      // into the next page instead of a dead stop then a jump
+      if (!navigated && t >= 0.88){
+        navigated = true;
+        window.location.href = 'index.html';
+      }
+
       if (t < 1){
         requestAnimationFrame(frame);
       } else {
-        window.location.href = 'index.html';
-
         // safety net: restore interactivity if navigation didn't
         // actually happen, instead of leaving the graph locked
         setTimeout(() => {

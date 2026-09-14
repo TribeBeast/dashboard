@@ -327,6 +327,18 @@
     text-anchor: middle;
   }
   .you-node{ cursor: pointer; }
+  .sun-rays{
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: sun-spin 70s linear infinite;
+  }
+  @keyframes sun-spin{
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .sun-rays{ animation: none; }
+  }
   .you-halo{
     transform-box: fill-box;
     transform-origin: center;
@@ -1036,10 +1048,12 @@
 
     const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
 
-    // Work is a mechanical, station-like node — angular hex panels
-    // instead of organic bands, a dashed technical ring, and a small
-    // satellite instead of a round moon. Distinct in concept from
-    // School's soft double-ring planet, not just a variation of it.
+    // Work is a mechanical energy core — a local "sun" for its own
+    // orbiting sub-hubs (RA, Lab, Experiences), the same way Home is the
+    // sun for the whole site. Kept visually distinct from Home: sharp,
+    // angular, evenly-spaced rays instead of Home's warmer organic
+    // flare, plus the dashed containment ring and satellite keep its
+    // mechanical station identity.
     const techRing = document.createElementNS(svgNS, 'circle');
     techRing.setAttribute('r', 29);
     techRing.setAttribute('fill', 'none');
@@ -1048,6 +1062,19 @@
     techRing.setAttribute('stroke-dasharray', '3,4.5');
     techRing.setAttribute('opacity', '0.5');
 
+    // sharp, evenly-spaced energy rays — angular and uniform, unlike
+    // Home's warmer alternating-length solar rays
+    const energyRays = document.createElementNS(svgNS, 'g');
+    energyRays.setAttribute('class', 'sun-rays');
+    for (let i = 0; i < 12; i++){
+      const ray = document.createElementNS(svgNS, 'path');
+      ray.setAttribute('d', 'M-1,-7 L0,-26 L1,-7 Z');
+      ray.setAttribute('transform', `rotate(${(360/12)*i})`);
+      ray.setAttribute('fill', i % 3 === 0 ? lighten(youCoreHex, 0.3) : darken(youCoreHex, 0.05));
+      ray.setAttribute('opacity', i % 3 === 0 ? '0.8' : '0.5');
+      energyRays.appendChild(ray);
+    }
+
     const core = document.createElementNS(svgNS, 'circle');
     core.setAttribute('r', 19);
     core.setAttribute('fill', 'var(--you-core)');
@@ -1055,30 +1082,15 @@
     core.setAttribute('stroke-width', '1.2');
     core.setAttribute('filter', 'url(#starglow)');
 
-    function hexPath(cx, cy, r){
-      const pts = [];
-      for (let i = 0; i < 6; i++){
-        const a = Math.PI/180 * (60*i);
-        pts.push(`${(cx+r*Math.cos(a)).toFixed(2)},${(cy+r*Math.sin(a)).toFixed(2)}`);
-      }
-      return 'M' + pts.join('L') + 'Z';
-    }
-    function makeHex(cx, cy, r, amt){
-      const hex = document.createElementNS(svgNS, 'path');
-      hex.setAttribute('d', hexPath(cx, cy, r));
-      hex.setAttribute('fill', amt >= 0 ? lighten(youCoreHex, amt) : darken(youCoreHex, -amt));
-      hex.setAttribute('stroke', darken(youCoreHex, 0.3));
-      hex.setAttribute('stroke-width', '0.4');
-      hex.setAttribute('opacity', '0.85');
-      hex.setAttribute('clip-path', 'url(#circleClip)');
-      return hex;
-    }
-    const hexPanels = [
-      makeHex(-6, -6, 8.5, 0.35),
-      makeHex(8, 3, 7.5, -0.22),
-      makeHex(-3, 10, 6.5, 0.15),
-      makeHex(10, -9, 6, -0.3),
-    ];
+    // a bright energy-core glow patch instead of hex panels — smooth
+    // and radiant rather than paneled, reinforcing the "power source"
+    // read
+    const coreGlow = document.createElementNS(svgNS, 'ellipse');
+    coreGlow.setAttribute('cx', -4); coreGlow.setAttribute('cy', -5);
+    coreGlow.setAttribute('rx', 9); coreGlow.setAttribute('ry', 7);
+    coreGlow.setAttribute('fill', lighten(youCoreHex, 0.45));
+    coreGlow.setAttribute('opacity', '0.65');
+    coreGlow.setAttribute('clip-path', 'url(#circleClip)');
 
     // a small satellite (body + two panel wings) instead of a round moon
     const satOrbit = document.createElementNS(svgNS, 'g');
@@ -1124,8 +1136,9 @@
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
     you.appendChild(techRing);
+    you.appendChild(energyRays);
     you.appendChild(core);
-    hexPanels.forEach(h => you.appendChild(h));
+    you.appendChild(coreGlow);
     you.appendChild(satOrbit);
     you.appendChild(rim);
     you.appendChild(label);
@@ -1159,55 +1172,12 @@
 
       const mCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
 
-      const mRing = document.createElementNS(svgNS, 'ellipse');
-      mRing.setAttribute('rx', 17); mRing.setAttribute('ry', 4.5);
-      mRing.setAttribute('transform', 'rotate(-16)');
-      mRing.setAttribute('fill', 'none');
-      mRing.setAttribute('stroke', 'var(--you-glow)');
-      mRing.setAttribute('stroke-width', '1.2');
-      mRing.setAttribute('opacity', '0.5');
-
       const mCore = document.createElementNS(svgNS, 'circle');
       mCore.setAttribute('r', 10);
       mCore.setAttribute('fill', 'var(--you-core)');
       mCore.setAttribute('stroke', 'var(--you-shadow)');
       mCore.setAttribute('stroke-width', '1');
       mCore.setAttribute('filter', 'url(#starglow)');
-
-      const mBandDark = document.createElementNS(svgNS, 'ellipse');
-      mBandDark.setAttribute('cx', 1); mBandDark.setAttribute('cy', 5);
-      mBandDark.setAttribute('rx', 12); mBandDark.setAttribute('ry', 3.8);
-      mBandDark.setAttribute('transform', 'rotate(-9)');
-      mBandDark.setAttribute('fill', darken(mCoreHex, 0.22));
-      mBandDark.setAttribute('opacity', '0.75');
-      mBandDark.setAttribute('clip-path', 'url(#circleClipSmall)');
-
-      const mBandLight = document.createElementNS(svgNS, 'ellipse');
-      mBandLight.setAttribute('cx', -2); mBandLight.setAttribute('cy', -4);
-      mBandLight.setAttribute('rx', 11); mBandLight.setAttribute('ry', 3.2);
-      mBandLight.setAttribute('transform', 'rotate(11)');
-      mBandLight.setAttribute('fill', lighten(mCoreHex, 0.38));
-      mBandLight.setAttribute('opacity', '0.8');
-      mBandLight.setAttribute('clip-path', 'url(#circleClipSmall)');
-
-      const mMoonOrbit = document.createElementNS(svgNS, 'g');
-      const mMoon = document.createElementNS(svgNS, 'circle');
-      mMoon.setAttribute('cx', 19); mMoon.setAttribute('cy', 0);
-      mMoon.setAttribute('r', 1.5);
-      mMoon.setAttribute('fill', lighten(mCoreHex, 0.55));
-      mMoon.setAttribute('stroke', darken(mCoreHex, 0.3));
-      mMoon.setAttribute('stroke-width', '0.5');
-      mMoonOrbit.appendChild(mMoon);
-      if (!reduceMotion){
-        const mMoonAnim = document.createElementNS(svgNS, 'animateTransform');
-        mMoonAnim.setAttribute('attributeName', 'transform');
-        mMoonAnim.setAttribute('type', 'rotate');
-        mMoonAnim.setAttribute('from', '0 0 0');
-        mMoonAnim.setAttribute('to', '360 0 0');
-        mMoonAnim.setAttribute('dur', (12 + Math.random()*5).toFixed(1) + 's');
-        mMoonAnim.setAttribute('repeatCount', 'indefinite');
-        mMoonOrbit.appendChild(mMoonAnim);
-      }
 
       const mRim = document.createElementNS(svgNS, 'circle');
       mRim.setAttribute('r', 10.4);
@@ -1224,11 +1194,90 @@
 
       mini.appendChild(mHaloOuter);
       mini.appendChild(mHaloInner);
-      mini.appendChild(mRing);
-      mini.appendChild(mCore);
-      mini.appendChild(mBandDark);
-      mini.appendChild(mBandLight);
-      mini.appendChild(mMoonOrbit);
+
+      // each mini-hub gets its own distinct "generic planet" flavor —
+      // different combinations of ring/bands/craters/moons, so the
+      // three orbiting hubs are visually varied instead of identical
+      function moonOn(mini, radius, size, dur, reverse){
+        const orbit = document.createElementNS(svgNS, 'g');
+        const m = document.createElementNS(svgNS, 'circle');
+        m.setAttribute('cx', radius); m.setAttribute('cy', 0);
+        m.setAttribute('r', size);
+        m.setAttribute('fill', lighten(mCoreHex, 0.55));
+        m.setAttribute('stroke', darken(mCoreHex, 0.3));
+        m.setAttribute('stroke-width', '0.5');
+        orbit.appendChild(m);
+        if (!reduceMotion){
+          const anim = document.createElementNS(svgNS, 'animateTransform');
+          anim.setAttribute('attributeName', 'transform');
+          anim.setAttribute('type', 'rotate');
+          anim.setAttribute('from', reverse ? '360 0 0' : '0 0 0');
+          anim.setAttribute('to', reverse ? '0 0 0' : '360 0 0');
+          anim.setAttribute('dur', dur + 's');
+          anim.setAttribute('repeatCount', 'indefinite');
+          orbit.appendChild(anim);
+        }
+        mini.appendChild(orbit);
+      }
+
+      if (hub === 'ra'){
+        // a clean ringed planet — thin tilted ring, smooth surface
+        const ring = document.createElementNS(svgNS, 'ellipse');
+        ring.setAttribute('rx', 16); ring.setAttribute('ry', 4.2);
+        ring.setAttribute('transform', 'rotate(-16)');
+        ring.setAttribute('fill', 'none');
+        ring.setAttribute('stroke', 'var(--you-glow)');
+        ring.setAttribute('stroke-width', '1.1');
+        ring.setAttribute('opacity', '0.5');
+        mini.appendChild(ring);
+        mini.appendChild(mCore);
+        const shine = document.createElementNS(svgNS, 'ellipse');
+        shine.setAttribute('cx', -3); shine.setAttribute('cy', -3.5);
+        shine.setAttribute('rx', 4); shine.setAttribute('ry', 3);
+        shine.setAttribute('fill', lighten(mCoreHex, 0.4));
+        shine.setAttribute('opacity', '0.55');
+        shine.setAttribute('clip-path', 'url(#circleClipSmall)');
+        mini.appendChild(shine);
+      } else if (hub === 'lab'){
+        // a banded gas giant with a small storm spot — no ring, no moon
+        mini.appendChild(mCore);
+        const bandDark = document.createElementNS(svgNS, 'ellipse');
+        bandDark.setAttribute('cx', 1); bandDark.setAttribute('cy', 4);
+        bandDark.setAttribute('rx', 11); bandDark.setAttribute('ry', 3.4);
+        bandDark.setAttribute('transform', 'rotate(-9)');
+        bandDark.setAttribute('fill', darken(mCoreHex, 0.22));
+        bandDark.setAttribute('opacity', '0.75');
+        bandDark.setAttribute('clip-path', 'url(#circleClipSmall)');
+        mini.appendChild(bandDark);
+        const bandLight = document.createElementNS(svgNS, 'ellipse');
+        bandLight.setAttribute('cx', -2); bandLight.setAttribute('cy', -4);
+        bandLight.setAttribute('rx', 10); bandLight.setAttribute('ry', 3);
+        bandLight.setAttribute('transform', 'rotate(11)');
+        bandLight.setAttribute('fill', lighten(mCoreHex, 0.35));
+        bandLight.setAttribute('opacity', '0.8');
+        bandLight.setAttribute('clip-path', 'url(#circleClipSmall)');
+        mini.appendChild(bandLight);
+        const spot = document.createElementNS(svgNS, 'ellipse');
+        spot.setAttribute('cx', 3); spot.setAttribute('cy', 1);
+        spot.setAttribute('rx', 2.2); spot.setAttribute('ry', 1.4);
+        spot.setAttribute('fill', lighten(mCoreHex, 0.6));
+        spot.setAttribute('opacity', '0.8');
+        spot.setAttribute('clip-path', 'url(#circleClipSmall)');
+        mini.appendChild(spot);
+      } else {
+        // a cratered moon with one small companion moon — no ring
+        mini.appendChild(mCore);
+        [[-3,-2,3],[2.5,2,2],[-1,3.5,1.6]].forEach(([cx,cy,r]) => {
+          const crater = document.createElementNS(svgNS, 'circle');
+          crater.setAttribute('cx', cx); crater.setAttribute('cy', cy); crater.setAttribute('r', r);
+          crater.setAttribute('fill', darken(mCoreHex, 0.18));
+          crater.setAttribute('opacity', '0.5');
+          crater.setAttribute('clip-path', 'url(#circleClipSmall)');
+          mini.appendChild(crater);
+        });
+        moonOn(mini, 18, 1.4, (11 + Math.random()*4).toFixed(1), false);
+      }
+
       mini.appendChild(mRim);
       mini.appendChild(mLabel);
       g.appendChild(mini);
@@ -1454,7 +1503,7 @@
       // browser begins swapping pages while the last bit of motion is
       // still playing, which is what makes it read as one continuous
       // motion instead of "stop, then jump"
-      if (!navigated && t >= 0.7){
+      if (!navigated && t >= 0.88){
         navigated = true;
         const flash = document.getElementById('warp-flash');
         flash.style.background = `radial-gradient(circle at 50% 50%, ${n.color || CATS[n.category]?.hex || '#fff'} 0%, transparent 70%)`;
@@ -1531,6 +1580,7 @@
 
     const dur = 560;
     let startTs = null;
+    let navigated = false;
 
     function frame(ts){
       if (startTs === null) startTs = ts;
@@ -1545,11 +1595,17 @@
       // the backdrop recedes too, more gently than the foreground
       if (bg) bg.style.transform = `translate(${pan.x*0.4}px, ${pan.y*0.4}px) scale(${lerp(1, 0.55, p)})`;
 
+      // start navigating shortly before the animation visually
+      // finishes, same idea as warpTo — carries the motion through
+      // into the next page instead of a dead stop then a jump
+      if (!navigated && t >= 0.88){
+        navigated = true;
+        window.location.href = 'index.html';
+      }
+
       if (t < 1){
         requestAnimationFrame(frame);
       } else {
-        window.location.href = 'index.html';
-
         // safety net: restore interactivity if navigation didn't
         // actually happen, instead of leaving the graph locked
         setTimeout(() => {

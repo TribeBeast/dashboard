@@ -1275,7 +1275,7 @@
       // browser begins swapping pages while the last bit of motion is
       // still playing, which is what makes it read as one continuous
       // motion instead of "stop, then jump"
-      if (!navigated && t >= 0.7){
+      if (!navigated && t >= 0.88){
         navigated = true;
         const flash = document.getElementById('warp-flash');
         flash.style.background = `radial-gradient(circle at 50% 50%, ${n.color || CATS[n.category]?.hex || '#fff'} 0%, transparent 70%)`;
@@ -1352,6 +1352,7 @@
 
     const dur = 560;
     let startTs = null;
+    let navigated = false;
 
     function frame(ts){
       if (startTs === null) startTs = ts;
@@ -1366,11 +1367,17 @@
       // the backdrop recedes too, more gently than the foreground
       if (bg) bg.style.transform = `translate(${pan.x*0.4}px, ${pan.y*0.4}px) scale(${lerp(1, 0.55, p)})`;
 
+      // start navigating shortly before the animation visually
+      // finishes, same idea as warpTo — carries the motion through
+      // into the next page instead of a dead stop then a jump
+      if (!navigated && t >= 0.88){
+        navigated = true;
+        window.location.href = 'index.html';
+      }
+
       if (t < 1){
         requestAnimationFrame(frame);
       } else {
-        window.location.href = 'index.html';
-
         // safety net: restore interactivity if navigation didn't
         // actually happen, instead of leaving the graph locked
         setTimeout(() => {

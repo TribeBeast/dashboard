@@ -162,6 +162,55 @@
     position: fixed; right: 26px; bottom: 26px; z-index: 6;
     display: flex; flex-direction: column; align-items: center; gap: 18px;
   }
+  /* fixed to the viewport, not the pannable graph — stays put no
+     matter how the person drags around the page */
+  #topbar-clock{
+    position: fixed; top: 22px; right: 26px; z-index: 6;
+    text-align: right; pointer-events: none;
+    font-family: 'Fraunces', serif; color: #EDEBF7;
+  }
+  #topbar-clock-time{
+    font-size: 28px; font-variant-numeric: tabular-nums; line-height: 1;
+    text-shadow: 0 0 12px rgba(237,235,247,0.65), 0 0 26px rgba(237,235,247,0.3);
+  }
+  #topbar-clock-date{
+    font-family: 'Inter', sans-serif; color: var(--text-dim);
+    font-size: 11.5px; margin-top: 6px;
+  }
+  .topbar-subline{
+    font-family: 'Inter', sans-serif; font-size: 11.5px;
+    margin-top: 5px; display: flex; justify-content: flex-end; gap: 6px;
+  }
+  .topbar-sublabel{ color: var(--text-dim); }
+  #topbar-cal-settings-btn{
+    pointer-events: auto; margin-top: 8px;
+    background: none; border: none; color: var(--text-dim);
+    font-size: 13px; padding: 2px 0; cursor: pointer;
+    opacity: 0.6; transition: opacity .15s ease;
+  }
+  #topbar-cal-settings-btn:hover{ opacity: 1; background: none; }
+  .empty-note{ color: var(--text-dim); font-size: 13px; }
+  #cal-modal-overlay{
+    position: fixed; inset: 0; background: rgba(2,3,10,0.65);
+    display: flex; align-items:center; justify-content:center; z-index: 25;
+    opacity: 0; pointer-events: none;
+    transition: opacity 180ms ease;
+  }
+  #cal-modal-overlay.open{ opacity: 1; pointer-events: auto; }
+  #cal-modal{
+    position: relative;
+    background: rgba(20,18,18,0.18);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: none; border-radius: 0;
+    padding: 28px 26px; width: 320px;
+    box-shadow: 0 30px 60px -18px rgba(0,0,0,0.55);
+  }
+  #cal-modal-frame{ position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+  #cal-modal h2{
+    font-family:'Fraunces', serif; font-weight:500; font-size:18px; margin:0 0 20px;
+    color: #EDEBF7; text-shadow: 0 0 10px rgba(237,235,247,0.55);
+  }
   .icon-btn{
     background: none; border: none; padding: 0; margin: 0;
     width: 40px; height: 40px;
@@ -370,73 +419,6 @@
   }
 
 
-  /* Drawer */
-  #drawer{
-    position: fixed; top:0; right:0; height: 100vh; width: 320px;
-    background: rgba(20,18,18,0.18);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    transform: translateX(100%);
-    transition: transform .25s ease;
-    z-index: 10;
-    padding: 28px 24px;
-    overflow-y: auto;
-  }
-  #drawer.open{ transform: translateX(0); }
-  #drawer-frame{
-    position: absolute; inset: 0; overflow: visible; pointer-events: none;
-  }
-  #drawer h2{
-    font-family:'Fraunces', serif; font-weight: 500;
-    font-size: 18px; margin: 0 0 4px;
-  }
-  .drawer-section{ margin-top: 26px; }
-  .drawer-section h3{
-    font-size: 12px; color: var(--text-dim); font-weight: 500;
-    margin: 0 0 10px; letter-spacing: 0.3px;
-  }
-  .gcal-toggle-btn{
-    background: none; border: none; color: var(--text-dim);
-    font-size: 11.5px; padding: 6px 0 0; margin: 0;
-    cursor: pointer; text-decoration: underline;
-  }
-  .gcal-toggle-btn:hover{ color: var(--text); background: none; border: none; }
-  #clock{
-    font-family: 'Fraunces', serif;
-    font-size: 40px;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-    color: var(--you-core);
-  }
-  #clock-date{ color: var(--text-dim); font-size: 13px; margin-top: 6px; }
-  textarea#notes{
-    width: 100%; min-height: 120px; resize: vertical;
-    background: var(--bg-deep); border: 1px solid var(--line); border-radius: 8px;
-    color: var(--text); font-family: 'Inter', sans-serif; font-size: 13.5px;
-    padding: 10px; line-height: 1.5;
-  }
-  textarea#notes:focus{ outline: 1px solid var(--c-projects); }
-  .link-row{
-    display:flex; align-items:center; justify-content: space-between;
-    padding: 8px 0; border-bottom: 1px solid var(--line);
-    font-size: 13.5px;
-  }
-  .link-row:last-child{ border-bottom: none; }
-  .link-row .dot{
-    width: 8px; height: 8px; border-radius: 50%; display:inline-block; margin-right: 9px;
-  }
-  .link-row .name{ flex: 1; }
-  .link-row button{
-    padding: 3px 8px; font-size: 11.5px; border-radius: 6px;
-  }
-  .drawer-close{
-    position: absolute; top: 24px; right: 22px;
-    background: none; border: none; color: var(--text-dim); font-size: 18px;
-    padding: 2px 6px;
-  }
-  .drawer-close:hover{ color: var(--text); background: none; border:none; }
-  .empty-note{ color: var(--text-dim); font-size: 13px; }
-
   /* Modal */
   #modal-overlay{
     position: fixed; inset: 0; background: rgba(2,3,10,0.65);
@@ -460,7 +442,6 @@
     position: absolute; inset: 0; overflow: visible; pointer-events: none;
   }
   .frame-star{ fill: #EDEBF7; }
-  #gcal-box{ position: relative; }
   #modal h2{
     font-family:'Fraunces', serif; font-weight:500; font-size:18px; margin:0 0 20px;
     color: #EDEBF7;
@@ -513,9 +494,41 @@
   <div class="dust d3"></div>
 </div>
 
+<div id="topbar-clock">
+  <div id="topbar-clock-time">--:--</div>
+  <div id="topbar-clock-date"></div>
+  <div class="topbar-subline"><span class="topbar-sublabel">Next Class</span><span id="topbar-next-class">—</span></div>
+  <div class="topbar-subline"><span class="topbar-sublabel">Next Shift</span><span id="topbar-next-shift">—</span></div>
+  <div class="topbar-subline"><span class="topbar-sublabel">Due Soon</span><span id="topbar-due-soon">—</span></div>
+  <button id="topbar-cal-settings-btn" aria-label="Link calendars" title="Link calendars">⚙</button>
+</div>
+
+<div id="cal-modal-overlay">
+  <div id="cal-modal">
+    <svg id="cal-modal-frame"></svg>
+    <h2>Link your calendars</h2>
+    <div class="field">
+      <label for="cal-api-key">Google API key</label>
+      <input id="cal-api-key" type="password" placeholder="AIza...">
+    </div>
+    <div class="field">
+      <label for="cal-class-id">Class calendar ID</label>
+      <input id="cal-class-id" type="text" placeholder="you@gmail.com or ...@group.calendar.google.com">
+    </div>
+    <div class="field">
+      <label for="cal-shift-id">Shift calendar ID</label>
+      <input id="cal-shift-id" type="text" placeholder="you@gmail.com or ...@group.calendar.google.com">
+    </div>
+    <div class="modal-actions">
+      <button id="cal-modal-cancel">Cancel</button>
+      <button id="cal-modal-save" class="btn-primary">Save &amp; sync</button>
+    </div>
+    <div id="cal-modal-status" class="empty-note" style="margin-top:10px;"></div>
+  </div>
+</div>
+
 <div id="fab-controls">
   <button id="home-icon-btn" class="icon-btn" aria-label="Home" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-9"/></svg></button>
-  <button id="drawer-toggle" class="icon-btn" aria-label="Widgets" title="Widgets"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="1.6" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="7" cy="17" r="1.6" fill="currentColor" stroke="none"/></svg></button>
   <button id="add-btn" class="icon-btn" aria-label="Add a link" title="Add a link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 </div>
 
@@ -527,58 +540,6 @@
   <div class="streak s2"></div>
 </div>
 
-
-<div id="drawer">
-  <svg id="drawer-frame"></svg>
-  <button class="drawer-close" id="drawer-close" aria-label="Close">✕</button>
-  <h2>Widgets</h2>
-
-  <div class="drawer-section">
-    <h3>Right now</h3>
-    <div id="clock">--:--</div>
-    <div id="clock-date"></div>
-  </div>
-
-  <div class="drawer-section">
-    <h3>Upcoming</h3>
-    <div id="gcal-box">
-      <div id="gcal-list" class="empty-note">Connect a calendar to see your next event here.</div>
-      <button id="gcal-toggle" class="gcal-toggle-btn">⚙ Manage calendars</button>
-      <div id="gcal-settings" style="display:none;">
-        <div class="field" style="margin-top:12px;">
-          <label for="gc-key">Google API key</label>
-          <input id="gc-key" type="password" placeholder="AIza...">
-        </div>
-
-        <div id="gc-cal-rows"></div>
-
-        <div class="field">
-          <label for="gc-new-label">Calendar name</label>
-          <input id="gc-new-label" type="text" placeholder="e.g. Shifts">
-        </div>
-        <div class="field">
-          <label for="gc-new-id">Calendar ID</label>
-          <input id="gc-new-id" type="text" placeholder="you@gmail.com or ...@group.calendar.google.com">
-        </div>
-        <button id="gc-add-cal" style="width:100%;">+ Add calendar</button>
-
-        <button id="gc-save-sync" class="btn-primary" style="width:100%; margin-top:10px;">Save & sync</button>
-        <div id="gc-status" class="empty-note" style="margin-top:10px;"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="drawer-section">
-    <h3>Notes to self</h3>
-    <textarea id="notes" placeholder="Jot something down — it stays here next time you visit."></textarea>
-  </div>
-
-  <div class="drawer-section">
-    <h3>Your links</h3>
-    <div id="link-list"></div>
-  </div>
-
-</div>
 
 <div id="modal-overlay">
   <div id="modal">
@@ -751,169 +712,16 @@
     const saved = SiteSync.loadLocal('work-nodes', true);
     nodes = saved && saved.length ? saved : DEFAULT_NODES.map(n => ({...n}));
 
-    const nt = SiteSync.loadLocal('work-notes', false);
-    if (nt) document.getElementById('notes').value = nt;
-
     SiteSync.checkCloud('work-nodes', true, (fresher) => {
       if (fresher && fresher.length){
         nodes = fresher;
         buildScene();
         relayout();
-        renderLinkList();
       }
-    });
-    SiteSync.checkCloud('work-notes', false, (fresher) => {
-      if (fresher) document.getElementById('notes').value = fresher;
     });
   }
   async function saveNodes(){
     SiteSync.save('work-nodes', nodes);
-  }
-  async function saveNotes(val){
-    SiteSync.save('work-notes', val);
-  }
-
-
-  // ---------- Google Calendar: shared "Upcoming" widget ----------
-  // stored under one unprefixed key so every page (same origin) reads
-  // and writes the exact same data — add a calendar once, see it everywhere
-  function loadGcalConfig(){
-    try {
-      const raw = localStorage.getItem('gcal-config');
-      return raw ? JSON.parse(raw) : { apiKey: '', calendars: [] };
-    } catch(e){ return { apiKey: '', calendars: [] }; }
-  }
-  function saveGcalConfig(cfg){
-    SiteSync.save('gcal-config', cfg);
-  }
-  function setGcStatus(msg, isError){
-    const el = document.getElementById('gc-status');
-    if (!el) return;
-    el.textContent = msg;
-    el.style.color = isError ? (CATS.apps?.hex || '#E4483C') : '';
-  }
-  function formatEventWhen(ev){
-    const start = ev.start.dateTime || ev.start.date;
-    const d = new Date(start);
-    if (ev.start.date && !ev.start.dateTime){
-      return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) + ' (all day)';
-    }
-    return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
-      + ' · ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  }
-  function renderGcCalRows(){
-    const cfg = loadGcalConfig();
-    const wrap = document.getElementById('gc-cal-rows');
-    if (!wrap) return;
-    if (!cfg.calendars.length){ wrap.innerHTML = ''; return; }
-    wrap.innerHTML = cfg.calendars.map(cal => `
-      <div class="link-row">
-        <span class="dot" style="background:${CATS.apps?.hex || '#EDEBF7'}"></span>
-        <span class="name">${cal.label}</span>
-        <button data-remove-cal="${cal.id}">Remove</button>
-      </div>
-    `).join('');
-    wrap.querySelectorAll('[data-remove-cal]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const cfg2 = loadGcalConfig();
-        cfg2.calendars = cfg2.calendars.filter(c => c.id !== btn.dataset.removeCal);
-        saveGcalConfig(cfg2);
-        renderGcCalRows();
-      });
-    });
-  }
-  async function fetchCalendarEvents(apiKey, calendarId){
-    const timeMin = new Date().toISOString();
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`
-      + `?key=${encodeURIComponent(apiKey)}&timeMin=${encodeURIComponent(timeMin)}`
-      + `&maxResults=5&orderBy=startTime&singleEvents=true`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || ('Request failed (' + res.status + ')'));
-    return data.items || [];
-  }
-  async function syncAllCalendars(){
-    const cfg = loadGcalConfig();
-    const listEl = document.getElementById('gcal-list');
-    if (!cfg.apiKey || !cfg.calendars.length){
-      setGcStatus(!cfg.apiKey ? 'Add your API key first.' : 'Add a calendar to sync.', true);
-      if (listEl){ listEl.textContent = 'Connect a calendar to see your next event here.'; listEl.className = 'empty-note'; }
-      return;
-    }
-    setGcStatus('Syncing…');
-    try {
-      const all = [];
-      for (const cal of cfg.calendars){
-        const items = await fetchCalendarEvents(cfg.apiKey, cal.calendarId);
-        items.forEach(ev => all.push({ ev, label: cal.label }));
-      }
-      all.sort((a, b) => {
-        const ta = new Date(a.ev.start.dateTime || a.ev.start.date).getTime();
-        const tb = new Date(b.ev.start.dateTime || b.ev.start.date).getTime();
-        return ta - tb;
-      });
-      const top = all.slice(0, 1); // just the next upcoming event
-      if (listEl){
-        if (!top.length){
-          listEl.textContent = 'Nothing upcoming.';
-          listEl.className = 'empty-note';
-        } else {
-          listEl.className = '';
-          listEl.innerHTML = top.map(({ev, label}) => `
-            <div class="link-row">
-              <span class="dot" style="background:${CATS.apps?.hex || '#EDEBF7'}"></span>
-              <span class="name">${ev.summary || '(untitled)'}<br><span style="color:var(--text-dim); font-size:11.5px;">${label} · ${formatEventWhen(ev)}</span></span>
-            </div>
-          `).join('');
-        }
-      }
-      setGcStatus(`Synced — ${all.length} upcoming across ${cfg.calendars.length} calendar${cfg.calendars.length===1?'':'s'}.`);
-    } catch(e){
-      setGcStatus('Sync failed: ' + e.message, true);
-    }
-  }
-  function initGcalUI(){
-    const cfg = loadGcalConfig();
-    document.getElementById('gc-key').value = cfg.apiKey || '';
-    renderGcCalRows();
-
-    document.getElementById('gcal-toggle').addEventListener('click', () => {
-      const panel = document.getElementById('gcal-settings');
-      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-    });
-
-    document.getElementById('gc-add-cal').addEventListener('click', () => {
-      const label = document.getElementById('gc-new-label').value.trim();
-      const calendarId = document.getElementById('gc-new-id').value.trim();
-      const apiKey = document.getElementById('gc-key').value.trim();
-      if (!label || !calendarId){ setGcStatus('Enter a calendar name and ID.', true); return; }
-      const cfg2 = loadGcalConfig();
-      cfg2.apiKey = apiKey;
-      cfg2.calendars.push({ id: 'c'+Date.now(), label, calendarId });
-      saveGcalConfig(cfg2);
-      document.getElementById('gc-new-label').value = '';
-      document.getElementById('gc-new-id').value = '';
-      renderGcCalRows();
-      if (apiKey){
-        syncAllCalendars();
-      } else {
-        setGcStatus('Calendar added. Add your API key above, then Save & sync.', true);
-      }
-    });
-
-    document.getElementById('gc-save-sync').addEventListener('click', () => {
-      const cfg2 = loadGcalConfig();
-      cfg2.apiKey = document.getElementById('gc-key').value.trim();
-      saveGcalConfig(cfg2);
-      syncAllCalendars();
-    });
-
-    if (cfg.apiKey && cfg.calendars.length){
-      syncAllCalendars();
-    }
-
-    // keep it fresh for tabs left open, without needing a reload
-    setInterval(() => { syncAllCalendars(); }, 10 * 60 * 1000);
   }
 
   // ---------- layout ----------
@@ -1775,61 +1583,151 @@
     positionScene();
   });
 
-  // ---------- drawer ----------
-  const drawer = document.getElementById('drawer');
   document.getElementById('home-icon-btn').addEventListener('click', () => zoomOutHome());
-  document.getElementById('drawer-toggle').addEventListener('click', () => {
-    drawer.classList.add('open'); renderLinkList();
-    buildModalFrame('drawer', 'drawer-frame');
-  });
-  document.getElementById('drawer-close').addEventListener('click', () => drawer.classList.remove('open'));
 
-  function renderLinkList(){
-    const list = document.getElementById('link-list');
-    list.innerHTML = '';
-    if (!nodes.length){
-      list.innerHTML = '<div class="empty-note">Nothing added yet.</div>';
-      return;
+  // ---------- Next Class / Next Shift: linked Google Calendars ----------
+  // one Google API key, two separate calendar IDs — one for classes,
+  // one for shifts. Stored under a dedicated key so it syncs across
+  // devices the same way everything else on the site does.
+  function loadCalConfig(){
+    try {
+      const raw = localStorage.getItem('schedule-calendars-config');
+      return raw ? JSON.parse(raw) : { apiKey: '', classCalendarId: '', shiftCalendarId: '' };
+    } catch(e){ return { apiKey: '', classCalendarId: '', shiftCalendarId: '' }; }
+  }
+  function saveCalConfig(cfg){
+    SiteSync.save('schedule-calendars-config', cfg);
+  }
+  function setCalStatus(msg, isError){
+    const el = document.getElementById('cal-modal-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.style.color = isError ? '#E4483C' : '';
+  }
+  async function fetchNextEvent(apiKey, calendarId){
+    const timeMin = new Date().toISOString();
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`
+      + `?key=${encodeURIComponent(apiKey)}&timeMin=${encodeURIComponent(timeMin)}`
+      + `&maxResults=1&orderBy=startTime&singleEvents=true`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || ('Request failed (' + res.status + ')'));
+    return (data.items || [])[0] || null;
+  }
+  function formatEventRange(ev){
+    if (!ev) return '—';
+    const name = ev.summary || '(untitled)';
+    if (!ev.start.dateTime){
+      return name; // all-day event — no meaningful time range to show
     }
-    nodes.forEach(n => {
-      const row = document.createElement('div');
-      row.className = 'link-row';
-      row.innerHTML = `
-        <span class="dot" style="background:${CATS[n.category]?.hex || CATS.other.hex}"></span>
-        <span class="name">${n.name}</span>
-        <button data-id="${n.id}">Remove</button>
-      `;
-      row.querySelector('button').addEventListener('click', () => removeNode(n.id));
-      list.appendChild(row);
+    const start = new Date(ev.start.dateTime);
+    const end = new Date(ev.end.dateTime || ev.end.date);
+    const startTime = start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const endTime = end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    return `${name} ${startTime}–${endTime}`;
+  }
+  async function refreshScheduleCalendars(){
+    const cfg = loadCalConfig();
+    if (!cfg.apiKey) return;
+    if (cfg.classCalendarId){
+      try {
+        const ev = await fetchNextEvent(cfg.apiKey, cfg.classCalendarId);
+        const el = document.getElementById('topbar-next-class');
+        if (el) el.textContent = formatEventRange(ev);
+      } catch(e){ /* leave the existing value showing rather than blank it out */ }
+    }
+    if (cfg.shiftCalendarId){
+      try {
+        const ev = await fetchNextEvent(cfg.apiKey, cfg.shiftCalendarId);
+        const el = document.getElementById('topbar-next-shift');
+        if (el) el.textContent = formatEventRange(ev);
+      } catch(e){}
+    }
+  }
+  function initCalSettingsUI(){
+    const overlay = document.getElementById('cal-modal-overlay');
+    const btn = document.getElementById('topbar-cal-settings-btn');
+    if (!overlay || !btn) return;
+    btn.addEventListener('click', () => {
+      const cfg = loadCalConfig();
+      document.getElementById('cal-api-key').value = cfg.apiKey || '';
+      document.getElementById('cal-class-id').value = cfg.classCalendarId || '';
+      document.getElementById('cal-shift-id').value = cfg.shiftCalendarId || '';
+      setCalStatus('');
+      overlay.classList.add('open');
+      buildModalFrame('cal-modal', 'cal-modal-frame');
+    });
+    document.getElementById('cal-modal-cancel').addEventListener('click', () => overlay.classList.remove('open'));
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+    document.getElementById('cal-modal-save').addEventListener('click', async () => {
+      const cfg = {
+        apiKey: document.getElementById('cal-api-key').value.trim(),
+        classCalendarId: document.getElementById('cal-class-id').value.trim(),
+        shiftCalendarId: document.getElementById('cal-shift-id').value.trim(),
+      };
+      if (!cfg.apiKey || (!cfg.classCalendarId && !cfg.shiftCalendarId)){
+        setCalStatus('Add your API key and at least one calendar ID.', true);
+        return;
+      }
+      saveCalConfig(cfg);
+      setCalStatus('Syncing…');
+      try {
+        await refreshScheduleCalendars();
+        setCalStatus('Synced.');
+      } catch(e){
+        setCalStatus('Sync failed: ' + e.message, true);
+      }
     });
   }
 
-  function removeNode(id){
-    nodes = nodes.filter(n => n.id !== id);
-    saveNodes();
-    buildScene();
-    relayout();
-    renderLinkList();
-  }
-
-  // clock
+  // clock — fixed to the top-right of the viewport, independent of
+  // the pannable graph
   function updateClock(){
     const now = new Date();
-    document.getElementById('clock').textContent =
+    document.getElementById('topbar-clock-time').textContent =
       now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-    document.getElementById('clock-date').textContent =
+    document.getElementById('topbar-clock-date').textContent =
       now.toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'});
+    updateDueSoon();
+  }
+  // "Due Soon" reads the same To-do task data the To-do page itself
+  // uses (alltodo-nodes), so it works from any page without needing
+  // its own separate data entry. "Next Class" and "Next Shift" are
+  // populated from linked Google Calendars — see the settings gear on
+  // the clock widget, and refreshScheduleCalendars() above.
+  // dueDate is captured as date+time (e.g. "2026-10-03T15:00") from
+  // the To-do page's datetime-local input; older tasks saved before
+  // that change only have a plain date ("2026-09-18") and fall back to
+  // showing just the date since there's no real time to show
+  function updateDueSoon(){
+    const el = document.getElementById('topbar-due-soon');
+    if (!el) return;
+    let tasks = [];
+    try {
+      const raw = localStorage.getItem('alltodo-nodes');
+      tasks = raw ? JSON.parse(raw) : [];
+    } catch(e){}
+    const now = Date.now();
+    let nearest = null;
+    tasks.forEach(t => {
+      if (!t.dueDate) return;
+      const hasTime = t.dueDate.includes('T');
+      const d = hasTime ? new Date(t.dueDate) : new Date(t.dueDate + 'T23:59:59');
+      const due = d.getTime();
+      if (!isNaN(due) && due >= now && (!nearest || due < nearest.due)){
+        nearest = { name: t.name, due, hasTime, date: d };
+      }
+    });
+    if (!nearest){
+      el.textContent = '—';
+    } else if (nearest.hasTime){
+      el.textContent = nearest.name + ' ' + nearest.date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    } else {
+      el.textContent = nearest.name + ' ' + nearest.date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
   }
   updateClock();
   setInterval(updateClock, 1000*15);
-
-  // notes
-  const notesEl = document.getElementById('notes');
-  let notesTimer = null;
-  notesEl.addEventListener('input', () => {
-    clearTimeout(notesTimer);
-    notesTimer = setTimeout(() => saveNotes(notesEl.value), 500);
-  });
 
   // ---------- add modal ----------
   const overlay = document.getElementById('modal-overlay');
@@ -1936,7 +1834,6 @@
     overlay.classList.remove('open');
     buildScene();
     relayout();
-    renderLinkList();
   });
 
   // ---------- init ----------
@@ -1952,14 +1849,9 @@
     } else {
       setTimeout(() => { svg.style.opacity = '1'; }, 60);
     }
-    initGcalUI();
-    // check the cloud for a fresher calendar config in the background —
-    // never blocks the initial render, only refreshes the calendar
-    // widget's fields if something newer actually turns up
-    SiteSync.checkCloud('gcal-config', true, () => {
-      document.getElementById('gc-key').value = loadGcalConfig().apiKey || '';
-      renderGcCalRows();
-    });
+    initCalSettingsUI();
+    refreshScheduleCalendars();
+    setInterval(refreshScheduleCalendars, 10 * 60 * 1000);
   })();
 })();
 </script>

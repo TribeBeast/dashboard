@@ -29,10 +29,13 @@
 
   if (sessionStorage.getItem(SESSION_KEY) === 'yes') return; // already unlocked this session
 
-  // hide everything else on the page immediately, before it can render
-  // — this has to happen synchronously, right now, which is exactly
-  // what document.write does when called from a head script
-  document.write('<style id="site-gate-hide">body > *:not(#site-gate-overlay){ visibility: hidden !important; }</style>');
+  // hide the whole page immediately via a direct style property, not
+  // document.write() — document.write() can, depending on exactly when
+  // it runs, wipe out everything else on the page instead of just
+  // adding to it. document.documentElement (<html>) already exists by
+  // the time this script runs (it's the very first thing in <head>),
+  // so this is both safe and instant.
+  document.documentElement.style.visibility = 'hidden';
 
   function buildOverlay(){
     const style = document.createElement('style');
@@ -80,8 +83,7 @@
 
     function unlock(){
       sessionStorage.setItem(SESSION_KEY, 'yes');
-      const hideStyle = document.getElementById('site-gate-hide');
-      if (hideStyle) hideStyle.remove();
+      document.documentElement.style.visibility = '';
       overlay.remove();
     }
 

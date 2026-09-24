@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="gate.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 <title>To-do</title>
@@ -756,11 +757,27 @@
 
   // ---------- storage (plain localStorage, works on any host) ----------
   async function loadState(){
-    const saved = await SiteSync.loadFreshest('alltodo-nodes', true);
+    // read local data synchronously — the page renders from this right
+    // away, with zero network wait. Any fresher cloud copy is checked
+    // for and applied in the background afterward, never blocking the
+    // initial render.
+    const saved = SiteSync.loadLocal('alltodo-nodes', true);
     nodes = saved && saved.length ? saved : DEFAULT_NODES.map(n => ({...n}));
 
-    const nt = await SiteSync.loadFreshest('alltodo-notes', false);
+    const nt = SiteSync.loadLocal('alltodo-notes', false);
     if (nt) document.getElementById('notes').value = nt;
+
+    SiteSync.checkCloud('alltodo-nodes', true, (fresher) => {
+      if (fresher && fresher.length){
+        nodes = fresher;
+        buildScene();
+        relayout();
+        renderLinkList();
+      }
+    });
+    SiteSync.checkCloud('alltodo-notes', false, (fresher) => {
+      if (fresher) document.getElementById('notes').value = fresher;
+    });
   }
   async function saveNodes(){
     SiteSync.save('alltodo-nodes', nodes);
@@ -1093,7 +1110,7 @@
         const rand = hash01(n.id);
         const rand2 = hash01(n.id + 'r');
         const angle = (base - spread/2 + t*spread + (rand-0.5)*26) * Math.PI/180;
-        const r = Math.max(90, (RING_RADIUS[cat] ?? 130) + (rand2-0.5)*40);
+        const r = Math.max(115, (RING_RADIUS[cat] ?? 130) + (rand2-0.5)*40);
         n.tx = anchor.x + Math.cos(angle) * r;
         n.ty = anchor.y + Math.sin(angle) * r;
         // remember this node's position relative to its own hub, so that
@@ -1422,6 +1439,31 @@
 
       mini.appendChild(mRim);
       mini.appendChild(mLabel);
+
+      // clicking a mini-hub opens "Add a task" pre-set to that hub,
+      // instead of having to open it plain and pick from the dropdown
+      let miniDownAt = null, miniMoved = false;
+      mini.addEventListener('pointerdown', e => { miniDownAt = {x:e.clientX,y:e.clientY}; miniMoved = false; e.stopPropagation(); });
+      mini.addEventListener('pointermove', e => {
+        if (!miniDownAt) return;
+        if (Math.hypot(e.clientX-miniDownAt.x, e.clientY-miniDownAt.y) > 6) miniMoved = true;
+      });
+      mini.addEventListener('pointerup', e => {
+        e.stopPropagation();
+        if (!miniMoved){
+          document.getElementById('f-hub').value = hub;
+          document.getElementById('f-name').value = '';
+          document.getElementById('f-subject').value = '';
+          document.getElementById('f-due').value = '';
+          document.getElementById('f-url').value = '';
+          document.getElementById('f-color').value = '#2ECC71';
+          overlay.classList.add('open');
+          document.getElementById('f-name').focus();
+          buildModalFrame();
+        }
+        miniDownAt = null;
+      });
+
       g.appendChild(mini);
     });
 
@@ -1511,10 +1553,18 @@
       starWrap.appendChild(circle);
       starWrap.appendChild(glint);
 
+      // labels point away from this node's hub rather than always
+      // rightward — a node landing on the LEFT side of its hub had its
+      // label extending back through the hub's own label before this
+      const catAngle = CAT_ANGLE_OFFSET[n.category] ?? 0;
+      const labelLeft = catAngle > 90 && catAngle < 270;
+      const labelX = labelLeft ? -13 : 13;
+
       const text = document.createElementNS(svgNS, 'text');
       text.setAttribute('class', 'node-label');
-      text.setAttribute('x', 13);
+      text.setAttribute('x', labelX);
       text.setAttribute('y', 4);
+      if (labelLeft) text.setAttribute('text-anchor', 'end');
       text.textContent = n.name;
 
       // the star, its label, and its due date (if any) float together as
@@ -1532,8 +1582,9 @@
       if (n.dueDate){
         const due = document.createElementNS(svgNS, 'text');
         due.setAttribute('class', 'node-label node-due');
-        due.setAttribute('x', 13);
+        due.setAttribute('x', labelX);
         due.setAttribute('y', 18);
+        if (labelLeft) due.setAttribute('text-anchor', 'end');
         due.textContent = formatDueShort(n.dueDate);
         floatWrap.appendChild(due);
       }
@@ -1542,6 +1593,8 @@
       g.appendChild(group);
       n._group = group;
       n._star = circle;
+      n._nameLabel = text;
+      n._dueLabel = n.dueDate ? floatWrap.querySelector('.node-due') : null;
 
       let downAt = null, moved = false;
       group.addEventListener('pointerdown', e => {
@@ -1732,16 +1785,23 @@
     const flip = sx > window.innerWidth * 0.6;
     const dir = flip ? -1 : 1;
 
-    // the star's own label already shows the task name, so the chain
-    // starts straight from Subject rather than repeating it
+    // the star's own labels get hidden for the duration — they sit
+    // right next to the star, which is exactly where the chain's first
+    // points land, so they were overlapping. The task name becomes the
+    // chain's own first field instead, so nothing is lost.
+    if (n._nameLabel) n._nameLabel.style.display = 'none';
+    if (n._dueLabel) n._dueLabel.style.display = 'none';
+
     const fields = [];
-    fields.push({ value: n.subject || '—', caption: 'Subject' });
-    fields.push({ value: n.dueDate ? formatDueFull(n.dueDate) : '—', caption: 'Due' });
+    fields.push({ value: n.name, caption: 'Task' });
+    if (n.subject) fields.push({ value: n.subject, caption: 'Subject' });
+    if (n.dueDate) fields.push({ value: formatDueFull(n.dueDate), caption: 'Due' });
     if (n.url) fields.push({ value: 'Open ↗', caption: 'Link', isLink: true });
     fields.push({ value: 'Mark done ✓', caption: 'Complete', isAction: true });
 
-    // a gentle zigzag so points don't run in a straight line
-    const deltas = [[62,-40], [56,40], [-46,40], [-52,-36]];
+    // a gentle zigzag so points don't run in a straight line — spaced
+    // further apart than before so text never runs into the next point
+    const deltas = [[78,-50], [70,50], [-58,50], [-66,-46], [64,-40]];
     const segDur = 260; // how long each segment's line takes to draw in
 
     // keep every point clear of the screen edges and away from the fixed
@@ -1874,6 +1934,10 @@
   function hideTaskDetails(){
     popupOpen = false;
     openPopupId = null;
+    if (chainNode){
+      if (chainNode._nameLabel) chainNode._nameLabel.style.display = '';
+      if (chainNode._dueLabel) chainNode._dueLabel.style.display = '';
+    }
     chainNode = null;
     chainGroupEl = null;
     const svg = document.getElementById('popup-line');
@@ -1989,6 +2053,15 @@
       positionScene();
     }, 440);
   }
+
+  // some browsers restore this exact page from a back-forward cache
+  // when you hit Back after a star link took you to an external site —
+  // that restores the frozen mid-warp visual state (zoomed in, faded
+  // out, clicks disabled) instead of a fresh load. Catch that case and
+  // put everything back to normal.
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) resetWarp();
+  });
 
   // ---------- zoom out to go home (reverse of warping into a star) ----------
   function zoomOutHome(){
@@ -2319,8 +2392,6 @@
   // ---------- init ----------
   (async function init(){
     await loadState();
-    await SiteSync.loadFreshest('gcal-config', true);
-    await SiteSync.loadFreshest('todo-canvas-settings', true);
     buildScene();
     relayout();
     // fade the whole graph in, rather than it popping in the instant
@@ -2333,6 +2404,19 @@
     }
     initCanvasSyncUI();
     initGcalUI();
+    // check the cloud for fresher calendar/Canvas settings in the
+    // background — never blocks the initial render, only refreshes
+    // these fields if something newer actually turns up
+    SiteSync.checkCloud('gcal-config', true, () => {
+      document.getElementById('gc-key').value = loadGcalConfig().apiKey || '';
+      renderGcCalRows();
+    });
+    SiteSync.checkCloud('todo-canvas-settings', true, (fresher) => {
+      if (fresher){
+        document.getElementById('cv-gkey').value = fresher.apiKey || '';
+        document.getElementById('cv-gcal').value = fresher.calendarId || '';
+      }
+    });
   })();
 })();
 </script>

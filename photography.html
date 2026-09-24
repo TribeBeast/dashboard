@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="gate.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 <title>Photography</title>
@@ -697,11 +698,27 @@
 
   // ---------- storage (plain localStorage, works on any host) ----------
   async function loadState(){
-    const saved = await SiteSync.loadFreshest('photography-nodes', true);
+    // read local data synchronously — the page renders from this right
+    // away, with zero network wait. Any fresher cloud copy is checked
+    // for and applied in the background afterward, never blocking the
+    // initial render.
+    const saved = SiteSync.loadLocal('photography-nodes', true);
     nodes = saved && saved.length ? saved : DEFAULT_NODES.map(n => ({...n}));
 
-    const nt = await SiteSync.loadFreshest('photography-notes', false);
+    const nt = SiteSync.loadLocal('photography-notes', false);
     if (nt) document.getElementById('notes').value = nt;
+
+    SiteSync.checkCloud('photography-nodes', true, (fresher) => {
+      if (fresher && fresher.length){
+        nodes = fresher;
+        buildScene();
+        relayout();
+        renderLinkList();
+      }
+    });
+    SiteSync.checkCloud('photography-notes', false, (fresher) => {
+      if (fresher) document.getElementById('notes').value = fresher;
+    });
   }
   async function saveNodes(){
     SiteSync.save('photography-nodes', nodes);
@@ -1343,6 +1360,15 @@
     }, 440);
   }
 
+  // some browsers restore this exact page from a back-forward cache
+  // when you hit Back after a star link took you to an external site —
+  // that restores the frozen mid-warp visual state (zoomed in, faded
+  // out, clicks disabled) instead of a fresh load. Catch that case and
+  // put everything back to normal.
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) resetWarp();
+  });
+
   // ---------- zoom out to go home (reverse of warping into a star) ----------
   function zoomOutHome(){
     if (warping) return;
@@ -1612,7 +1638,6 @@
   // ---------- init ----------
   (async function init(){
     await loadState();
-    await SiteSync.loadFreshest('gcal-config', true);
     buildScene();
     relayout();
     // fade the whole graph in, rather than it popping in the instant
@@ -1624,6 +1649,13 @@
       setTimeout(() => { svg.style.opacity = '1'; }, 60);
     }
     initGcalUI();
+    // check the cloud for a fresher calendar config in the background —
+    // never blocks the initial render, only refreshes the calendar
+    // widget's fields if something newer actually turns up
+    SiteSync.checkCloud('gcal-config', true, () => {
+      document.getElementById('gc-key').value = loadGcalConfig().apiKey || '';
+      renderGcCalRows();
+    });
   })();
 })();
 </script>

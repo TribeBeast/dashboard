@@ -60,10 +60,65 @@ const SiteSync = (() => {
       }
     },
 
+    // Reads the local copy of localKey synchronously — no network,
+    // returns instantly. Use this during page load so the page can
+    // render immediately from what's already on this device, instead
+    // of every navigation waiting on a round-trip to the Worker first.
+    loadLocal(localKey, isJSON) {
+      try {
+        const raw = localStorage.getItem(localKey);
+        return raw ? (isJSON ? JSON.parse(raw) : raw) : null;
+      } catch (e) {
+        return null;
+      }
+    },
+
+    // Checks the cloud for a fresher copy of localKey, entirely in the
+    // background — never awaited, never blocks rendering. Calls
+    // onNewer(value) only if the cloud actually has something newer
+    // than what's already local, so the caller can update its in-memory
+    // data and re-render at that point. Safe to call on every page load;
+    // does nothing if sync isn't configured or the Worker's unreachable.
+    checkCloud(localKey, isJSON, onNewer) {
+      if (!enabled()) return;
+      let local = this.loadLocal(localKey, isJSON);
+      let localTsRaw = null;
+      try { localTsRaw = localStorage.getItem(localKey + '__ts'); } catch (e) {}
+      const hasLocalData = local !== null && local !== undefined &&
+        !(isJSON && Array.isArray(local) && local.length === 0);
+
+      // Real local data that predates this sync system (or this device's
+      // first sync) has no recorded timestamp. Treating that as "oldest"
+      // is what once caused real data to be silently overwritten by
+      // whatever was sitting in the cloud — instead, the first time a
+      // device with untimestamped-but-real data checks in, its local
+      // copy is treated as authoritative and PUSHED to the cloud.
+      if (hasLocalData && localTsRaw === null) {
+        const ts = Date.now();
+        try { localStorage.setItem(localKey + '__ts', String(ts)); } catch (e) {}
+        call(localKey, 'set', local).catch(() => {});
+        return;
+      }
+
+      const localTs = Number(localTsRaw || 0);
+      call(localKey, 'get').then(res => {
+        if (res && res.updatedAt && res.updatedAt > localTs && res.value !== null && res.value !== undefined) {
+          try {
+            localStorage.setItem(localKey, isJSON ? JSON.stringify(res.value) : res.value);
+            localStorage.setItem(localKey + '__ts', String(res.updatedAt));
+          } catch (e) {}
+          if (onNewer) onNewer(res.value);
+        }
+      }).catch(() => {
+        // offline — the local copy already rendered, nothing more to do
+      });
+    },
+
     // Reads the local copy of localKey, and — if sync is enabled — also
-    // checks the cloud and returns whichever is newer. Meant to be
-    // awaited during page load, before the page first renders, so
-    // there's no separate "data arrived late, re-render" step needed.
+    // checks the cloud and returns whichever is newer. This AWAITS the
+    // network, so only use it somewhere that's fine blocking briefly —
+    // for page-load rendering, use loadLocal() + checkCloud() instead so
+    // the page never waits on a round-trip before it can show anything.
     // Falls back to the local copy alone if offline or unconfigured.
     async loadFreshest(localKey, isJSON) {
       let local = null;

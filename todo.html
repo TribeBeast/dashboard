@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script src="gate.js"></script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>To-do</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -15,33 +14,21 @@
     --line: rgba(255,255,255,0.09);
     --text: #EDEBF7;
     --text-dim: #9296B8;
-    --c-apps: #2ECC71;
-    --c-social: #27AE60;
-    --c-projects: #3CB371;
-    --c-other: #66BB6A;
-    --you-core: #6EE7A8;
-    --you-glow: #B8F5D0;
-    --you-shadow: #1B8A4C;
+    --c-apps: #E13A46;
+    --c-social: #E55581;
+    --c-projects: #DE4824;
+    --c-other: #EAA978;
+    --you-core: #EF7D85;
+    --you-glow: #F2C2C6;
+    --you-shadow: #99111B;
   }
   *{ box-sizing: border-box; }
-  html{
-    /* iOS specifically paints the zoomed-out / overscroll area using
-       this element's solid background-color (a gradient here won't do
-       it) — this is what stops white from showing when pinch-zoom
-       can't be fully prevented */
-    background-color: var(--bg-deep);
-  }
   html, body{
-    margin:0; padding:0; height:100%; min-height: 100%;
+    margin:0; padding:0; height:100%;
     background: radial-gradient(ellipse at 50% 40%, var(--bg-mid) 0%, var(--bg-deep) 70%);
     color: var(--text);
     font-family: 'Inter', sans-serif;
     overflow: hidden;
-    /* iOS Safari ignores the viewport meta tag's user-scalable=no, but it
-       DOES respect touch-action — this is what actually stops pinch from
-       being interpreted as a zoom gesture in the first place, rather
-       than just trying to hide the result after the fact */
-    touch-action: pan-x pan-y;
   }
 
   #space-bg{
@@ -162,55 +149,6 @@
     position: fixed; right: 26px; bottom: 26px; z-index: 6;
     display: flex; flex-direction: column; align-items: center; gap: 18px;
   }
-  /* fixed to the viewport, not the pannable graph — stays put no
-     matter how the person drags around the page */
-  #topbar-clock{
-    position: fixed; top: 22px; right: 26px; z-index: 6;
-    text-align: right; pointer-events: none;
-    font-family: 'Fraunces', serif; color: #EDEBF7;
-  }
-  #topbar-clock-time{
-    font-size: 28px; font-variant-numeric: tabular-nums; line-height: 1;
-    text-shadow: 0 0 12px rgba(237,235,247,0.65), 0 0 26px rgba(237,235,247,0.3);
-  }
-  #topbar-clock-date{
-    font-family: 'Inter', sans-serif; color: var(--text-dim);
-    font-size: 11.5px; margin-top: 6px;
-  }
-  .topbar-subline{
-    font-family: 'Inter', sans-serif; font-size: 11.5px;
-    margin-top: 5px; display: flex; justify-content: flex-end; gap: 6px;
-  }
-  .topbar-sublabel{ color: var(--text-dim); }
-  #topbar-cal-settings-btn{
-    pointer-events: auto; margin-top: 8px;
-    background: none; border: none; color: var(--text-dim);
-    font-size: 13px; padding: 2px 0; cursor: pointer;
-    opacity: 0.6; transition: opacity .15s ease;
-  }
-  #topbar-cal-settings-btn:hover{ opacity: 1; background: none; }
-  .empty-note{ color: var(--text-dim); font-size: 13px; }
-  #cal-modal-overlay{
-    position: fixed; inset: 0; background: rgba(2,3,10,0.65);
-    display: flex; align-items:center; justify-content:center; z-index: 25;
-    opacity: 0; pointer-events: none;
-    transition: opacity 180ms ease;
-  }
-  #cal-modal-overlay.open{ opacity: 1; pointer-events: auto; }
-  #cal-modal{
-    position: relative;
-    background: rgba(20,18,18,0.18);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: none; border-radius: 0;
-    padding: 28px 26px; width: 320px;
-    box-shadow: 0 30px 60px -18px rgba(0,0,0,0.55);
-  }
-  #cal-modal-frame{ position: absolute; inset: 0; overflow: visible; pointer-events: none; }
-  #cal-modal h2{
-    font-family:'Fraunces', serif; font-weight:500; font-size:18px; margin:0 0 20px;
-    color: #EDEBF7; text-shadow: 0 0 10px rgba(237,235,247,0.55);
-  }
   .icon-btn{
     background: none; border: none; padding: 0; margin: 0;
     width: 40px; height: 40px;
@@ -238,15 +176,7 @@
   button:hover{ border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.08); }
   button:focus-visible{ outline: 2px solid var(--c-projects); outline-offset: 2px; }
 
-  svg#graph{
-    width: 100vw; height: 100vh; display:block; cursor: grab; position: relative; z-index: 1;
-    user-select: none; -webkit-user-select: none;
-    /* the whole graph fades in on arrival instead of popping in the
-       instant its elements finish building — toggled to opacity 1 a
-       beat after buildScene()/relayout() run */
-    opacity: 0;
-    transition: opacity 700ms ease;
-  }
+  svg#graph{ width: 100vw; height: 100vh; display:block; cursor: grab; position: relative; z-index: 1; user-select: none; -webkit-user-select: none; }
   svg#graph.dragging{ cursor: grabbing; }
 
   .node-label{
@@ -255,13 +185,6 @@
     fill: var(--text-dim);
     pointer-events: none;
     transition: fill .15s ease;
-    /* a solid backdrop behind the text, so a connecting line or a
-       neighboring node passing near/behind a label never makes it
-       unreadable — the halo just paints over whatever's there */
-    paint-order: stroke fill;
-    stroke: var(--bg-deep);
-    stroke-width: 3px;
-    stroke-linejoin: round;
   }
   .node-circle{ transition: filter .15s ease; }
   .node-group{ cursor: pointer; }
@@ -286,87 +209,8 @@
     0%, 100% { transform: scale(var(--s-min, 0.8)) rotate(0deg); opacity: var(--o-min, 0.65); }
     50% { transform: scale(var(--s-max, 1.2)) rotate(var(--rot, 5deg)); opacity: var(--o-max, 1); }
   }
-
-  /* a soft, slow-pulsing light behind each star — gives it presence
-     without the layered gradient "shading" look; just a gentle glow,
-     like the star casting a bit of its own light */
-  .node-glow{
-    transform-box: fill-box;
-    transform-origin: center;
-    filter: blur(6px);
-    opacity: 0.3;
-    animation-name: node-glow-pulse;
-    animation-iteration-count: infinite;
-    animation-timing-function: ease-in-out;
-  }
-  @keyframes node-glow-pulse{
-    0%, 100% { opacity: 0.18; transform: scale(0.85); }
-    50% { opacity: 0.4; transform: scale(1.2); }
-  }
-
-  /* the faceted highlight — hard-edged, solid color, no blur — sits
-     right on top of the star/circle's own fill */
-  .node-facet{ opacity: 0.92; pointer-events: none; }
-
-  /* a tiny specular glint — like light catching a cut gem — flat, not a
-     gradient, just a small bright point that flashes on its own cycle,
-     giving the star some sparkle without adding any shading */
-  .node-glint{
-    fill: #FFFFFF;
-    animation-name: node-glint-flash;
-    animation-iteration-count: infinite;
-    animation-timing-function: ease-in-out;
-  }
-  @keyframes node-glint-flash{
-    0%, 82%, 100% { opacity: 0; }
-    88% { opacity: 0.95; }
-    94% { opacity: 0.2; }
-  }
-
-  /* a one-shot ring of energy when a star is actually clicked, right
-     before it warps — separate from the ambient glow/glint, this only
-     ever plays once per click */
-  .click-ring{
-    fill: none;
-    stroke-width: 1.4;
-    pointer-events: none;
-    animation: click-ring-burst 480ms ease-out forwards;
-  }
-  @keyframes click-ring-burst{
-    0% { r: 4; stroke-opacity: 0.8; stroke-width: 2.2; }
-    100% { r: 26; stroke-opacity: 0; stroke-width: 0.4; }
-  }
-
   @media (prefers-reduced-motion: reduce){
-    .node-glint{ animation: none; opacity: 0; }
-    .click-ring{ animation: none; display: none; }
-  }
-
-  /* each star drifts gently and independently, so the whole field feels
-     alive at rest rather than only reacting to hover — purely a local
-     offset, doesn't touch the positioning transform the layout controls */
-  .float-wrap{
-    animation-name: node-float;
-    animation-iteration-count: infinite;
-    animation-timing-function: ease-in-out;
-  }
-  @keyframes node-float{
-    0%, 100% { transform: translate(0, 0); }
-    50% { transform: translate(var(--float-x, 0px), var(--float-y, -3px)); }
-  }
-
-  /* connecting lines get a slow breathing pulse instead of sitting
-     perfectly static — reads as a faint current running along them */
-  .node-line{
-    animation: line-breathe 5s ease-in-out infinite;
-  }
-  @keyframes line-breathe{
-    0%, 100% { opacity: 0.09; }
-    50% { opacity: 0.22; }
-  }
-
-  @media (prefers-reduced-motion: reduce){
-    .node-star, .node-glow, .float-wrap, .node-line{ animation: none; }
+    .node-star{ animation: none; }
   }
 
   .you-label{
@@ -377,18 +221,6 @@
     text-anchor: middle;
   }
   .you-node{ cursor: pointer; }
-  .sun-rays{
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: sun-spin 70s linear infinite;
-  }
-  @keyframes sun-spin{
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-  @media (prefers-reduced-motion: reduce){
-    .sun-rays{ animation: none; }
-  }
   .you-halo{
     transform-box: fill-box;
     transform-origin: center;
@@ -403,6 +235,63 @@
     .you-halo{ animation: none; }
   }
 
+
+  /* Drawer */
+  #drawer{
+    position: fixed; top:0; right:0; height: 100vh; width: 320px;
+    background: var(--panel);
+    border-left: 1px solid var(--line);
+    transform: translateX(100%);
+    transition: transform .25s ease;
+    z-index: 10;
+    padding: 28px 24px;
+    overflow-y: auto;
+  }
+  #drawer.open{ transform: translateX(0); }
+  #drawer h2{
+    font-family:'Fraunces', serif; font-weight: 500;
+    font-size: 18px; margin: 0 0 4px;
+  }
+  .drawer-section{ margin-top: 26px; }
+  .drawer-section h3{
+    font-size: 12px; color: var(--text-dim); font-weight: 500;
+    margin: 0 0 10px; letter-spacing: 0.3px;
+  }
+  #clock{
+    font-family: 'Fraunces', serif;
+    font-size: 40px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    color: var(--you-core);
+  }
+  #clock-date{ color: var(--text-dim); font-size: 13px; margin-top: 6px; }
+  textarea#notes{
+    width: 100%; min-height: 120px; resize: vertical;
+    background: var(--bg-deep); border: 1px solid var(--line); border-radius: 8px;
+    color: var(--text); font-family: 'Inter', sans-serif; font-size: 13.5px;
+    padding: 10px; line-height: 1.5;
+  }
+  textarea#notes:focus{ outline: 1px solid var(--c-projects); }
+  .link-row{
+    display:flex; align-items:center; justify-content: space-between;
+    padding: 8px 0; border-bottom: 1px solid var(--line);
+    font-size: 13.5px;
+  }
+  .link-row:last-child{ border-bottom: none; }
+  .link-row .dot{
+    width: 8px; height: 8px; border-radius: 50%; display:inline-block; margin-right: 9px;
+  }
+  .link-row .name{ flex: 1; }
+  .link-row button{
+    padding: 3px 8px; font-size: 11.5px; border-radius: 6px;
+  }
+  .drawer-close{
+    position: absolute; top: 24px; right: 22px;
+    background: none; border: none; color: var(--text-dim); font-size: 18px;
+    padding: 2px 6px;
+  }
+  .drawer-close:hover{ color: var(--text); background: none; border:none; }
+  .empty-note{ color: var(--text-dim); font-size: 13px; }
 
   /* Modal — the "Add a task" form, styled like it's threaded together
      from a small constellation rather than a plain settings box */
@@ -439,7 +328,7 @@
     color: #EDEBF7;
     text-shadow: 0 0 6px rgba(237,235,247,0.45);
   }
-  .field input, .field select{
+  .field input{
     width: 100%; background: rgba(5,6,15,0.55); border-radius: 7px;
     color: var(--text); font-family: 'Inter', sans-serif; font-size: 13.5px; padding: 9px 10px;
     border: 1px solid rgba(237,235,247,0.55);
@@ -493,41 +382,9 @@
   <div class="dust d3"></div>
 </div>
 
-<div id="topbar-clock">
-  <div id="topbar-clock-time">--:--</div>
-  <div id="topbar-clock-date"></div>
-  <div class="topbar-subline"><span class="topbar-sublabel">Next Class</span><span id="topbar-next-class">—</span></div>
-  <div class="topbar-subline"><span class="topbar-sublabel">Next Shift</span><span id="topbar-next-shift">—</span></div>
-  <div class="topbar-subline"><span class="topbar-sublabel">Due Soon</span><span id="topbar-due-soon">—</span></div>
-  <button id="topbar-cal-settings-btn" aria-label="Link calendars" title="Link calendars">⚙</button>
-</div>
-
-<div id="cal-modal-overlay">
-  <div id="cal-modal">
-    <svg id="cal-modal-frame"></svg>
-    <h2>Link your calendars</h2>
-    <div class="field">
-      <label for="cal-api-key">Google API key</label>
-      <input id="cal-api-key" type="password" placeholder="AIza...">
-    </div>
-    <div class="field">
-      <label for="cal-class-id">Class calendar ID</label>
-      <input id="cal-class-id" type="text" placeholder="you@gmail.com or ...@group.calendar.google.com">
-    </div>
-    <div class="field">
-      <label for="cal-shift-id">Shift calendar ID</label>
-      <input id="cal-shift-id" type="text" placeholder="you@gmail.com or ...@group.calendar.google.com">
-    </div>
-    <div class="modal-actions">
-      <button id="cal-modal-cancel">Cancel</button>
-      <button id="cal-modal-save" class="btn-primary">Save &amp; sync</button>
-    </div>
-    <div id="cal-modal-status" class="empty-note" style="margin-top:10px;"></div>
-  </div>
-</div>
-
 <div id="fab-controls">
-  <button id="home-icon-btn" class="icon-btn" aria-label="Back to Home" title="Back to Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-9"/></svg></button>
+  <a href="school.html" class="icon-btn" aria-label="Back to School" title="Back to School"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-9"/></svg></a>
+  <button id="drawer-toggle" class="icon-btn" aria-label="Widgets" title="Widgets"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="1.6" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="7" cy="17" r="1.6" fill="currentColor" stroke="none"/></svg></button>
   <button id="add-btn" class="icon-btn" aria-label="Add a link" title="Add a link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 </div>
 
@@ -540,18 +397,53 @@
 </div>
 
 
+<div id="drawer">
+  <button class="drawer-close" id="drawer-close" aria-label="Close">✕</button>
+  <h2>Widgets</h2>
+
+  <div class="drawer-section">
+    <h3>Right now</h3>
+    <div id="clock">--:--</div>
+    <div id="clock-date"></div>
+  </div>
+
+  <div class="drawer-section">
+    <h3>Notes to self</h3>
+    <textarea id="notes" placeholder="Jot something down — it stays here next time you visit."></textarea>
+  </div>
+
+  <div class="drawer-section">
+    <h3>Your links</h3>
+    <div id="link-list"></div>
+  </div>
+
+  <div class="drawer-section">
+    <h3>Canvas sync</h3>
+    <div class="field">
+      <label for="cv-proxy">Proxy URL</label>
+      <input id="cv-proxy" type="text" placeholder="https://your-worker.workers.dev">
+    </div>
+    <div class="field">
+      <label for="cv-domain">Canvas domain</label>
+      <input id="cv-domain" type="text" placeholder="school.instructure.com">
+    </div>
+    <div class="field">
+      <label for="cv-token">API token</label>
+      <input id="cv-token" type="password" placeholder="Canvas access token">
+    </div>
+    <div class="field">
+      <label for="cv-course">Course ID</label>
+      <input id="cv-course" type="text" placeholder="e.g. 12345">
+    </div>
+    <button id="cv-save-sync" class="btn-primary" style="width:100%; margin-top:4px;">Save & sync</button>
+    <div id="cv-status" class="empty-note" style="margin-top:10px;"></div>
+  </div>
+</div>
+
 <div id="modal-overlay">
   <div id="modal">
     <svg id="modal-frame"></svg>
     <h2>Add a task</h2>
-    <div class="field">
-      <label for="f-hub">Belongs to</label>
-      <select id="f-hub">
-        <option value="school">School</option>
-        <option value="ra">RA</option>
-        <option value="lab">Lab</option>
-      </select>
-    </div>
     <div class="field">
       <label for="f-name">Assignment name</label>
       <input id="f-name" type="text" placeholder="e.g. Chapter 5 questions">
@@ -561,8 +453,8 @@
       <input id="f-subject" type="text" placeholder="e.g. History">
     </div>
     <div class="field">
-      <label for="f-due">Due date &amp; time</label>
-      <input id="f-due" type="datetime-local">
+      <label for="f-due">Due date</label>
+      <input id="f-due" type="date">
     </div>
     <div class="field">
       <label for="f-url">Link</label>
@@ -570,7 +462,7 @@
     </div>
     <div class="field">
       <label for="f-color">Color</label>
-      <input id="f-color" type="color" value="#2ECC71">
+      <input id="f-color" type="color" value="#E13A46">
     </div>
     <div class="modal-actions">
       <button id="cancel-btn">Cancel</button>
@@ -581,22 +473,17 @@
 
 <svg id="popup-line"></svg>
 
-<script src="sync.js"></script>
 <script>
 (function(){
   const CATS = {
-    apps:     { label: 'To-do', hex: '#2ECC71' },
-    social:   { label: 'To-do', hex: '#27AE60' },
-    projects: { label: 'To-do', hex: '#3CB371' },
-    other:    { label: 'To-do', hex: '#66BB6A' },
+    apps:     { label: 'To-do', hex: '#E13A46' },
+    social:   { label: 'To-do', hex: '#E55581' },
+    projects: { label: 'To-do', hex: '#DE4824' },
+    other:    { label: 'To-do', hex: '#EAA978' },
   };
 
-  // this page used to be three separate To-do pages (School, RA, Lab) —
-  // now they're three orbiting clusters on one page, School/RA/Lab tasks
-  // kept exactly as they were, just tagged with which hub they belong to
   const DEFAULT_NODES = [
-    { id: 'test1', name: 'Read Chapter 5', subject: 'History', dueDate: '2026-09-18', url: '', category: 'apps', hub: 'school' },
-    { id: 'n1', name: 'Pick Project', url: '', subject: '', dueDate: '', category: 'apps', hub: 'lab' },
+    { id: 'test1', name: 'Read Chapter 5', subject: 'History', dueDate: '2026-09-18', url: '', category: 'apps' },
   ];
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -705,43 +592,129 @@
 
   // ---------- storage (plain localStorage, works on any host) ----------
   async function loadState(){
-    // read local data synchronously — the page renders from this right
-    // away, with zero network wait. Any fresher cloud copy is checked
-    // for and applied in the background afterward, never blocking the
-    // initial render.
-    const saved = SiteSync.loadLocal('alltodo-nodes', true);
+    let saved = null;
+    try {
+      const raw = localStorage.getItem('todo-nodes');
+      if (raw) saved = JSON.parse(raw);
+    } catch(e){}
     nodes = saved && saved.length ? saved : DEFAULT_NODES.map(n => ({...n}));
 
-    SiteSync.checkCloud('alltodo-nodes', true, (fresher) => {
-      if (fresher && fresher.length){
-        nodes = fresher;
-        buildScene();
-        relayout();
-      }
-    });
+    try {
+      const nt = localStorage.getItem('todo-notes');
+      if (nt) document.getElementById('notes').value = nt;
+    } catch(e){}
   }
   async function saveNodes(){
-    SiteSync.save('alltodo-nodes', nodes);
+    try { localStorage.setItem('todo-nodes', JSON.stringify(nodes)); }
+    catch(e){ console.error('Could not save links', e); }
   }
+  async function saveNotes(val){
+    try { localStorage.setItem('todo-notes', val); }
+    catch(e){ console.error('Could not save notes', e); }
+  }
+
+  // ---------- Canvas sync ----------
+  // Canvas nodes are tagged with a "canvas-" id prefix so syncing only ever
+  // touches assignment-derived nodes, never anything added by hand.
+  const CV_CATS = ['apps', 'social', 'projects'];
+
+  function loadCanvasSettings(){
+    try {
+      const raw = localStorage.getItem('todo-canvas-settings');
+      return raw ? JSON.parse(raw) : null;
+    } catch(e){ return null; }
+  }
+  function saveCanvasSettings(s){
+    try { localStorage.setItem('todo-canvas-settings', JSON.stringify(s)); }
+    catch(e){ console.error('Could not save Canvas settings', e); }
+  }
+
+  function setCvStatus(msg, isError){
+    const el = document.getElementById('cv-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.style.color = isError ? '#E13A46' : '';
+  }
+
+  async function syncCanvas(settings){
+    const { proxy, domain, token, course } = settings;
+    if (!proxy || !domain || !token || !course){
+      setCvStatus('Fill in all four fields to sync.', true);
+      return;
+    }
+    setCvStatus('Syncing…');
+    let assignments;
+    try {
+      const res = await fetch(proxy, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain, token, courseId: course }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || ('Request failed (' + res.status + ')'));
+      assignments = data;
+    } catch(e){
+      setCvStatus('Sync failed: ' + e.message, true);
+      return;
+    }
+
+    const stillOpenIds = new Set(
+      assignments.filter(a => !a.submitted).map(a => 'canvas-' + a.id)
+    );
+
+    // drop canvas-managed nodes that are now submitted or no longer exist
+    nodes = nodes.filter(n => !n.id.startsWith('canvas-') || stillOpenIds.has(n.id));
+
+    // add or update the still-open ones
+    let colorIdx = 0;
+    assignments.forEach(a => {
+      if (a.submitted) return;
+      const id = 'canvas-' + a.id;
+      const existing = nodes.find(n => n.id === id);
+      const name = a.name.length > 28 ? a.name.slice(0, 27) + '…' : a.name;
+      if (existing){
+        existing.name = name;
+        existing.url = a.html_url;
+      } else {
+        nodes.push({ id, name, url: a.html_url, category: CV_CATS[colorIdx % CV_CATS.length] });
+      }
+      colorIdx++;
+    });
+
+    saveNodes();
+    buildScene();
+    relayout();
+    renderLinkList();
+    setCvStatus(`Synced — ${stillOpenIds.size} open assignment${stillOpenIds.size===1?'':'s'}.`);
+  }
+
+  function initCanvasSyncUI(){
+    const saved = loadCanvasSettings();
+    if (saved){
+      document.getElementById('cv-proxy').value = saved.proxy || '';
+      document.getElementById('cv-domain').value = saved.domain || '';
+      document.getElementById('cv-token').value = saved.token || '';
+      document.getElementById('cv-course').value = saved.course || '';
+    }
+    document.getElementById('cv-save-sync').addEventListener('click', () => {
+      const settings = {
+        proxy: document.getElementById('cv-proxy').value.trim(),
+        domain: document.getElementById('cv-domain').value.trim().replace(/^https?:\/\//,''),
+        token: document.getElementById('cv-token').value.trim(),
+        course: document.getElementById('cv-course').value.trim(),
+      };
+      saveCanvasSettings(settings);
+      syncCanvas(settings);
+    });
+    // auto-sync on load if settings are already filled in
+    if (saved && saved.proxy && saved.domain && saved.token && saved.course){
+      syncCanvas(saved);
+    }
+  }
+
   // ---------- layout ----------
-  // School, RA, and Lab are their own separate clusters on this same
-  // page, each with their own anchor point — To-do stays the true
-  // center, with no line connecting it to any cluster
-  const HUB_ANCHORS = {
-    todo:   { x: 0, y: 0 },
-    school: { x: -259.8, y: -150 },
-    ra:     { x: 259.8, y: -150 },
-    lab:    { x: 0, y: 300 },
-  };
-  // all three share the same orbit speed so the 120° spacing between
-  // them stays exact forever, rotating together as a fixed formation
-  const ORBIT = {
-    school: { radius: Math.hypot(HUB_ANCHORS.school.x, HUB_ANCHORS.school.y), angle: Math.atan2(HUB_ANCHORS.school.y, HUB_ANCHORS.school.x), speed: (2*Math.PI)/340 },
-    ra:     { radius: Math.hypot(HUB_ANCHORS.ra.x, HUB_ANCHORS.ra.y), angle: Math.atan2(HUB_ANCHORS.ra.y, HUB_ANCHORS.ra.x), speed: (2*Math.PI)/340 },
-    lab:    { radius: Math.hypot(HUB_ANCHORS.lab.x, HUB_ANCHORS.lab.y), angle: Math.atan2(HUB_ANCHORS.lab.y, HUB_ANCHORS.lab.x), speed: (2*Math.PI)/340 },
-  };
-  const RING_RADIUS = { apps: 105, social: 145, projects: 95, other: 125 };
-  const CAT_ANGLE_OFFSET = { apps: 15, social: 110, projects: 205, other: 300 };
+  const RING_RADIUS = { apps: 190, social: 140, projects: 240, other: 280 };
+  const CAT_ANGLE_OFFSET = { apps: -60, social: 90, projects: 210, other: 320 };
 
   // stable pseudo-random 0..1 from a string, so the "natural" jitter
   // stays put across relayouts instead of reshuffling every time
@@ -751,58 +724,22 @@
     return ((h % 1000) + 1000) % 1000 / 1000;
   }
 
-  // blends a hex color toward white by `amt` (0-1) — used for the flat
-  // highlight facet on stars/nodes, a distinct solid tone rather than
-  // any kind of gradient
-  function lighten(hex, amt){
-    const c = hex.replace('#', '');
-    const full = c.length === 3 ? c.split('').map(x => x+x).join('') : c;
-    const num = parseInt(full, 16);
-    let r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
-    r = Math.round(r + (255-r)*amt);
-    g = Math.round(g + (255-g)*amt);
-    b = Math.round(b + (255-b)*amt);
-    return `rgb(${r},${g},${b})`;
-  }
-  // blends a hex color toward black by `amt` (0-1) — the shadow-side
-  // counterpart to lighten(), for the same flat two-tone facet technique
-  function darken(hex, amt){
-    const c = hex.replace('#', '');
-    const full = c.length === 3 ? c.split('').map(x => x+x).join('') : c;
-    const num = parseInt(full, 16);
-    let r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
-    r = Math.round(r * (1-amt));
-    g = Math.round(g * (1-amt));
-    b = Math.round(b * (1-amt));
-    return `rgb(${r},${g},${b})`;
-  }
-
 
   function computeTargets(){
-    const byGroup = {};
-    nodes.forEach(n => {
-      const hub = n.hub || 'todo';
-      const key = hub + '|' + n.category;
-      (byGroup[key] ||= []).push(n);
-    });
-    Object.keys(byGroup).forEach(key => {
-      const [hub, cat] = key.split('|');
-      const anchor = HUB_ANCHORS[hub] || HUB_ANCHORS.todo;
-      const arr = byGroup[key];
-      const spread = 65;
+    const byCat = {};
+    nodes.forEach(n => { (byCat[n.category] ||= []).push(n); });
+    Object.keys(byCat).forEach(cat => {
+      const arr = byCat[cat];
+      const spread = 130;
       const base = CAT_ANGLE_OFFSET[cat] ?? 270;
       arr.forEach((n, i) => {
         const t = arr.length === 1 ? 0.5 : i/(arr.length-1);
         const rand = hash01(n.id);
         const rand2 = hash01(n.id + 'r');
-        const angle = (base - spread/2 + t*spread + (rand-0.5)*26) * Math.PI/180;
-        const r = Math.max(115, (RING_RADIUS[cat] ?? 130) + (rand2-0.5)*40);
-        n.tx = anchor.x + Math.cos(angle) * r;
-        n.ty = anchor.y + Math.sin(angle) * r;
-        // remember this node's position relative to its own hub, so that
-        // as the hub orbits, the node can just be re-anchored each frame
-        n.relX = n.tx - anchor.x;
-        n.relY = n.ty - anchor.y;
+        const angle = (base - spread/2 + t*spread + (rand-0.5)*46) * Math.PI/180;
+        const r = (RING_RADIUS[cat] ?? 220) + (rand2-0.5)*140;
+        n.tx = Math.cos(angle) * r;
+        n.ty = Math.sin(angle) * r;
         if (n.x === undefined){ n.x = n.tx + (Math.random()-0.5)*20; n.y = n.ty + (Math.random()-0.5)*20; }
       });
     });
@@ -826,52 +763,19 @@
     atmoGrad.innerHTML = '<stop offset="0%" stop-color="var(--you-glow)" stop-opacity="0.5"/><stop offset="55%" stop-color="var(--you-glow)" stop-opacity="0.16"/><stop offset="100%" stop-color="var(--you-glow)" stop-opacity="0"/>';
     defs.appendChild(atmoGrad);
 
-    // shared clip shapes for the faceted highlight look — a solid-color
-    // highlight clipped to the star/circle's own silhouette, hard-edged,
-    // no blur or gradient, like one flat facet of a cut gem catching light
-    const starClip = document.createElementNS(svgNS, 'clipPath');
-    starClip.setAttribute('id', 'starClip');
-    starClip.innerHTML = '<path d="M0,-10 C1.1,-3.3 3.3,-1.1 10,0 C3.3,1.1 1.1,3.3 0,10 C-1.1,3.3 -3.3,1.1 -10,0 C-3.3,-1.1 -1.1,-3.3 0,-10 Z"/>';
-    defs.appendChild(starClip);
-
-    const circleClip = document.createElementNS(svgNS, 'clipPath');
-    circleClip.setAttribute('id', 'circleClip');
-    circleClip.innerHTML = '<circle r="20"/>';
-    defs.appendChild(circleClip);
-
-    const circleClipSmall = document.createElementNS(svgNS, 'clipPath');
-    circleClipSmall.setAttribute('id', 'circleClipSmall');
-    circleClipSmall.innerHTML = '<circle r="11"/>';
-    defs.appendChild(circleClipSmall);
-
     svg.appendChild(defs);
 
     const g = document.createElementNS(svgNS, 'g');
     g.setAttribute('id', 'scene');
     svg.appendChild(g);
 
-    // faint orbit rings, drawn first so they sit behind everything else
-    ['school', 'ra', 'lab'].forEach(hub => {
-      const ring = document.createElementNS(svgNS, 'circle');
-      ring.setAttribute('cx', 0); ring.setAttribute('cy', 0);
-      ring.setAttribute('r', ORBIT[hub].radius);
-      ring.setAttribute('fill', 'none');
-      ring.setAttribute('stroke', 'rgba(237,235,247,0.09)');
-      ring.setAttribute('stroke-width', '1');
-      ring.setAttribute('stroke-dasharray', '2,6');
-      g.appendChild(ring);
-    });
-
     const lineGroup = document.createElementNS(svgNS, 'g');
     lineGroup.id = 'lines';
     g.appendChild(lineGroup);
     nodes.forEach(n => {
       const line = document.createElementNS(svgNS, 'line');
-      line.setAttribute('class', 'node-line');
-      line.setAttribute('stroke', '#EDEBF7');
+      line.setAttribute('stroke', 'rgba(255,255,255,0.12)');
       line.setAttribute('stroke-width', '1');
-      // stagger each line's breathing so they don't all pulse in lockstep
-      line.style.animationDelay = '-' + (Math.random()*5).toFixed(2) + 's';
       lineGroup.appendChild(line);
       n._line = line;
     });
@@ -889,88 +793,17 @@
     haloInner.setAttribute('r', 34);
     haloInner.setAttribute('fill', 'url(#atmoGrad)');
 
-    const youCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
-
-    // To-do is a clockwork gear that also radiates like a sun — fitting
-    // for a hub with its own orbiting sub-hubs (School, RA, Lab), the
-    // same reasoning Home and Work use. 12 rays echo a clock face's
-    // hour marks, and rotate slowly on their own, layered against the
-    // faster-sweeping second hand and the mostly-static gear body.
-    const clockRays = document.createElementNS(svgNS, 'g');
-    clockRays.setAttribute('class', 'sun-rays');
-    for (let i = 0; i < 12; i++){
-      const ray = document.createElementNS(svgNS, 'path');
-      const isHour = i % 3 === 0;
-      const len = isHour ? 30 : 25;
-      const w = isHour ? 1.3 : 0.8;
-      ray.setAttribute('d', `M-${w},-20 L0,-${len} L${w},-20 Z`);
-      ray.setAttribute('transform', `rotate(${(360/12)*i})`);
-      ray.setAttribute('fill', isHour ? lighten(youCoreHex, 0.3) : darken(youCoreHex, 0.05));
-      ray.setAttribute('opacity', isHour ? '0.75' : '0.45');
-      clockRays.appendChild(ray);
-    }
-
-    // gear teeth around the main gear's rim
     const core = document.createElementNS(svgNS, 'circle');
-    core.setAttribute('r', 17);
+    core.setAttribute('r', 19);
     core.setAttribute('fill', 'var(--you-core)');
-    core.setAttribute('stroke', 'var(--you-shadow)');
-    core.setAttribute('stroke-width', '1.2');
     core.setAttribute('filter', 'url(#starglow)');
 
-    const mainTeeth = document.createElementNS(svgNS, 'g');
-    for (let i = 0; i < 12; i++){
-      const tooth = document.createElementNS(svgNS, 'rect');
-      tooth.setAttribute('x', -1.3); tooth.setAttribute('y', -19.5);
-      tooth.setAttribute('width', '2.6'); tooth.setAttribute('height', '3');
-      tooth.setAttribute('fill', darken(youCoreHex, 0.25));
-      tooth.setAttribute('stroke', darken(youCoreHex, 0.4));
-      tooth.setAttribute('stroke-width', '0.3');
-      tooth.setAttribute('transform', `rotate(${(360/12)*i})`);
-      mainTeeth.appendChild(tooth);
-    }
-
-    // a ring of small bolts/rivets, a mechanical detail
-    const bolts = document.createElementNS(svgNS, 'g');
-    for (let i = 0; i < 6; i++){
-      const bolt = document.createElementNS(svgNS, 'circle');
-      const a = (Math.PI/180) * (60*i);
-      bolt.setAttribute('cx', (12*Math.cos(a)).toFixed(1));
-      bolt.setAttribute('cy', (12*Math.sin(a)).toFixed(1));
-      bolt.setAttribute('r', 1.3);
-      bolt.setAttribute('fill', darken(youCoreHex, 0.3));
-      bolt.setAttribute('opacity', '0.6');
-      bolts.appendChild(bolt);
-    }
-
-    // a sweeping second hand, continuously rotating
-    const handWrap = document.createElementNS(svgNS, 'g');
-    const hand = document.createElementNS(svgNS, 'line');
-    hand.setAttribute('x1', 0); hand.setAttribute('y1', 0);
-    hand.setAttribute('x2', 0); hand.setAttribute('y2', -14);
-    hand.setAttribute('stroke', darken(youCoreHex, 0.4));
-    hand.setAttribute('stroke-width', '1.2');
-    hand.setAttribute('stroke-linecap', 'round');
-    const handHub = document.createElementNS(svgNS, 'circle');
-    handHub.setAttribute('r', 1.6);
-    handHub.setAttribute('fill', darken(youCoreHex, 0.4));
-    handWrap.appendChild(hand);
-    handWrap.appendChild(handHub);
-    // rotation driven by decorFrame() below instead of SMIL — starts
-    // immediately and reliably rather than sometimes appearing frozen
-    // right after buildScene()'s heavy synchronous DOM construction
-    gEls.handWrap = handWrap;
-
-    // a smaller gear meshing alongside the main one
-    // a small energy flare near the rim — a spark catching light off
-    // the gear's teeth, in place of what was a redundant extra circle
-    const flare = document.createElementNS(svgNS, 'path');
-    const fSize = 3.6;
-    flare.setAttribute('d', `M0,-${fSize} L${fSize*0.2},-${fSize*0.2} L${fSize},0 L${fSize*0.2},${fSize*0.2} L0,${fSize} L-${fSize*0.2},${fSize*0.2} L-${fSize},0 L-${fSize*0.2},-${fSize*0.2} Z`);
-    flare.setAttribute('transform', 'translate(25,-16)');
-    flare.setAttribute('fill', lighten(youCoreHex, 0.65));
-    flare.setAttribute('class', 'node-glint');
-    flare.style.animationDuration = '3.2s';
+    const rim = document.createElementNS(svgNS, 'circle');
+    rim.setAttribute('r', 19.5);
+    rim.setAttribute('fill', 'none');
+    rim.setAttribute('stroke', 'var(--you-glow)');
+    rim.setAttribute('stroke-width', '0.7');
+    rim.setAttribute('opacity', '0.55');
 
     const label = document.createElementNS(svgNS, 'text');
     label.setAttribute('class', 'you-label');
@@ -979,179 +812,11 @@
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
-    you.appendChild(clockRays);
-    you.appendChild(flare);
-    you.appendChild(mainTeeth);
     you.appendChild(core);
-    you.appendChild(bolts);
-    you.appendChild(handWrap);
+    you.appendChild(rim);
     you.appendChild(label);
     g.appendChild(you);
     gEls.you = you;
-
-    // School, RA, and Lab get their own small hub markers, positioned at
-    // their anchors — decorative labels for the cluster, not clickable,
-    // deliberately not connected back to To-do by any line
-    gEls.miniHubs = {};
-    [
-      { hub: 'school', label: 'School' },
-      { hub: 'ra', label: 'RA' },
-      { hub: 'lab', label: 'Lab' },
-    ].forEach(({ hub, label: hubLabel }) => {
-      const anchor = HUB_ANCHORS[hub];
-      const mini = document.createElementNS(svgNS, 'g');
-      mini.setAttribute('class', 'you-node');
-      mini.setAttribute('transform', `translate(${anchor.x},${anchor.y})`);
-      gEls.miniHubs[hub] = mini;
-
-      const mHaloOuter = document.createElementNS(svgNS, 'circle');
-      mHaloOuter.setAttribute('class', 'you-halo you-halo-outer');
-      mHaloOuter.setAttribute('r', 34);
-      mHaloOuter.setAttribute('fill', 'url(#atmoGrad)');
-
-      const mHaloInner = document.createElementNS(svgNS, 'circle');
-      mHaloInner.setAttribute('class', 'you-halo you-halo-inner');
-      mHaloInner.setAttribute('r', 17);
-      mHaloInner.setAttribute('fill', 'url(#atmoGrad)');
-
-      const mCoreHex = getComputedStyle(document.documentElement).getPropertyValue('--you-core').trim();
-
-      const mCore = document.createElementNS(svgNS, 'circle');
-      mCore.setAttribute('r', 10);
-      mCore.setAttribute('fill', 'var(--you-core)');
-      mCore.setAttribute('stroke', 'var(--you-shadow)');
-      mCore.setAttribute('stroke-width', '1');
-      mCore.setAttribute('filter', 'url(#starglow)');
-
-      const mRim = document.createElementNS(svgNS, 'circle');
-      mRim.setAttribute('r', 10.4);
-      mRim.setAttribute('fill', 'none');
-      mRim.setAttribute('stroke', 'var(--you-glow)');
-      mRim.setAttribute('stroke-width', '0.6');
-      mRim.setAttribute('opacity', '0.5');
-
-      const mLabel = document.createElementNS(svgNS, 'text');
-      mLabel.setAttribute('class', 'you-label');
-      mLabel.setAttribute('y', 26);
-      mLabel.setAttribute('font-size', '12');
-      mLabel.textContent = hubLabel;
-
-      mini.appendChild(mHaloOuter);
-      mini.appendChild(mHaloInner);
-
-      // each mini-hub gets its own distinct "generic planet" flavor —
-      // different combinations of ring/bands/craters/moons, so School,
-      // RA, and Lab are visually varied instead of identical circles
-      function moonOn(mini, radius, size, dur, reverse){
-        const orbit = document.createElementNS(svgNS, 'g');
-        const m = document.createElementNS(svgNS, 'circle');
-        m.setAttribute('cx', radius); m.setAttribute('cy', 0);
-        m.setAttribute('r', size);
-        m.setAttribute('fill', lighten(mCoreHex, 0.55));
-        m.setAttribute('stroke', darken(mCoreHex, 0.3));
-        m.setAttribute('stroke-width', '0.5');
-        orbit.appendChild(m);
-        if (!reduceMotion){
-          const anim = document.createElementNS(svgNS, 'animateTransform');
-          anim.setAttribute('attributeName', 'transform');
-          anim.setAttribute('type', 'rotate');
-          anim.setAttribute('from', reverse ? '360 0 0' : '0 0 0');
-          anim.setAttribute('to', reverse ? '0 0 0' : '360 0 0');
-          anim.setAttribute('dur', dur + 's');
-          anim.setAttribute('repeatCount', 'indefinite');
-          orbit.appendChild(anim);
-        }
-        mini.appendChild(orbit);
-      }
-
-      if (hub === 'school'){
-        // a ringed planet with two small moons
-        const ring = document.createElementNS(svgNS, 'ellipse');
-        ring.setAttribute('rx', 16); ring.setAttribute('ry', 4.2);
-        ring.setAttribute('transform', 'rotate(-14)');
-        ring.setAttribute('fill', 'none');
-        ring.setAttribute('stroke', 'var(--you-glow)');
-        ring.setAttribute('stroke-width', '1.1');
-        ring.setAttribute('opacity', '0.5');
-        mini.appendChild(ring);
-        mini.appendChild(mCore);
-        moonOn(mini, 17, 1.3, (12 + Math.random()*4).toFixed(1), false);
-        moonOn(mini, 13, 1, (8 + Math.random()*3).toFixed(1), true);
-      } else if (hub === 'ra'){
-        // a banded planet with a bright spot — no ring, no moon
-        mini.appendChild(mCore);
-        const bandDark = document.createElementNS(svgNS, 'ellipse');
-        bandDark.setAttribute('cx', 1); bandDark.setAttribute('cy', 4);
-        bandDark.setAttribute('rx', 11); bandDark.setAttribute('ry', 3.4);
-        bandDark.setAttribute('transform', 'rotate(-9)');
-        bandDark.setAttribute('fill', darken(mCoreHex, 0.22));
-        bandDark.setAttribute('opacity', '0.75');
-        bandDark.setAttribute('clip-path', 'url(#circleClipSmall)');
-        mini.appendChild(bandDark);
-        const bandLight = document.createElementNS(svgNS, 'ellipse');
-        bandLight.setAttribute('cx', -2); bandLight.setAttribute('cy', -4);
-        bandLight.setAttribute('rx', 10); bandLight.setAttribute('ry', 3);
-        bandLight.setAttribute('transform', 'rotate(11)');
-        bandLight.setAttribute('fill', lighten(mCoreHex, 0.35));
-        bandLight.setAttribute('opacity', '0.8');
-        bandLight.setAttribute('clip-path', 'url(#circleClipSmall)');
-        mini.appendChild(bandLight);
-        const spot = document.createElementNS(svgNS, 'ellipse');
-        spot.setAttribute('cx', 3); spot.setAttribute('cy', 1);
-        spot.setAttribute('rx', 2.2); spot.setAttribute('ry', 1.4);
-        spot.setAttribute('fill', lighten(mCoreHex, 0.6));
-        spot.setAttribute('opacity', '0.8');
-        spot.setAttribute('clip-path', 'url(#circleClipSmall)');
-        mini.appendChild(spot);
-      } else {
-        // a cratered moon with a soft shine highlight — no ring, no moon
-        mini.appendChild(mCore);
-        [[-3,-2,3],[2.5,2,2],[-1,3.5,1.6]].forEach(([cx,cy,r]) => {
-          const crater = document.createElementNS(svgNS, 'circle');
-          crater.setAttribute('cx', cx); crater.setAttribute('cy', cy); crater.setAttribute('r', r);
-          crater.setAttribute('fill', darken(mCoreHex, 0.18));
-          crater.setAttribute('opacity', '0.5');
-          crater.setAttribute('clip-path', 'url(#circleClipSmall)');
-          mini.appendChild(crater);
-        });
-        const shine = document.createElementNS(svgNS, 'ellipse');
-        shine.setAttribute('cx', -3); shine.setAttribute('cy', -4);
-        shine.setAttribute('rx', 3.5); shine.setAttribute('ry', 2.6);
-        shine.setAttribute('fill', lighten(mCoreHex, 0.4));
-        shine.setAttribute('opacity', '0.5');
-        shine.setAttribute('clip-path', 'url(#circleClipSmall)');
-        mini.appendChild(shine);
-      }
-
-      mini.appendChild(mRim);
-      mini.appendChild(mLabel);
-
-      // clicking a mini-hub opens "Add a task" pre-set to that hub,
-      // instead of having to open it plain and pick from the dropdown
-      let miniDownAt = null, miniMoved = false;
-      mini.addEventListener('pointerdown', e => { miniDownAt = {x:e.clientX,y:e.clientY}; miniMoved = false; e.stopPropagation(); });
-      mini.addEventListener('pointermove', e => {
-        if (!miniDownAt) return;
-        if (Math.hypot(e.clientX-miniDownAt.x, e.clientY-miniDownAt.y) > 6) miniMoved = true;
-      });
-      mini.addEventListener('pointerup', e => {
-        e.stopPropagation();
-        if (!miniMoved){
-          document.getElementById('f-hub').value = hub;
-          document.getElementById('f-name').value = '';
-          document.getElementById('f-subject').value = '';
-          document.getElementById('f-due').value = '';
-          document.getElementById('f-url').value = '';
-          document.getElementById('f-color').value = '#2ECC71';
-          overlay.classList.add('open');
-          document.getElementById('f-name').focus();
-          buildModalFrame();
-        }
-        miniDownAt = null;
-      });
-
-      g.appendChild(mini);
-    });
 
     let youDownAt = null, youMoved = false;
     you.addEventListener('pointerdown', e => { youDownAt = {x:e.clientX,y:e.clientY}; youMoved = false; e.stopPropagation(); });
@@ -1177,23 +842,10 @@
       hitArea.setAttribute('r', 22);
       group.appendChild(hitArea);
 
-      // a soft pulsing glow sitting behind the star itself — separate
-      // timing from the star's own twinkle so the two never sync up
-      const glow = document.createElementNS(svgNS, 'circle');
-      glow.setAttribute('class', 'node-glow');
-      glow.setAttribute('r', 9);
-      glow.setAttribute('fill', n.color || CATS[n.category]?.hex || CATS.other.hex);
-      glow.style.animationDuration = (4 + Math.random()*3).toFixed(2) + 's';
-      glow.style.animationDelay = '-' + (Math.random()*6).toFixed(2) + 's';
-
-      const starColor = n.color || CATS[n.category]?.hex || CATS.other.hex;
-
-      // a proper layered sparkle burst — long primary rays, shorter
-      // secondary rays rotated 45°, and a bright core — each a distinct
-      // flat tone. Genuinely more visual richness than a single blob,
-      // still zero gradients/blur in the shapes themselves.
-      const circle = document.createElementNS(svgNS, 'g');
+      const circle = document.createElementNS(svgNS, 'path');
       circle.setAttribute('class', 'node-circle node-star');
+      circle.setAttribute('d', 'M0,-10 C1.1,-3.3 3.3,-1.1 10,0 C3.3,1.1 1.1,3.3 0,10 C-1.1,3.3 -3.3,1.1 -10,0 C-3.3,-1.1 -1.1,-3.3 0,-10 Z');
+      circle.setAttribute('fill', n.color || CATS[n.category]?.hex || CATS.other.hex);
       circle.setAttribute('filter', 'url(#starglow)');
       circle.style.setProperty('--s-min', (0.72 + Math.random()*0.12).toFixed(2));
       circle.style.setProperty('--s-max', (1.12 + Math.random()*0.22).toFixed(2));
@@ -1202,85 +854,30 @@
       circle.style.setProperty('--rot', (Math.random()*10 - 5).toFixed(1) + 'deg');
       circle.style.animationDuration = (6 + Math.random()*6).toFixed(2) + 's';
       circle.style.animationDelay = '-' + (Math.random()*12).toFixed(2) + 's';
-
-      const raysSecondary = document.createElementNS(svgNS, 'g');
-      raysSecondary.setAttribute('transform', 'rotate(45)');
-      const raysSecondaryPath = document.createElementNS(svgNS, 'path');
-      raysSecondaryPath.setAttribute('d', 'M0,-8 L1.3,-1.3 L8,0 L1.3,1.3 L0,8 L-1.3,1.3 L-8,0 L-1.3,-1.3 Z');
-      raysSecondaryPath.setAttribute('fill', lighten(starColor, 0.35));
-      raysSecondary.appendChild(raysSecondaryPath);
-
-      const raysPrimary = document.createElementNS(svgNS, 'path');
-      raysPrimary.setAttribute('d', 'M0,-14 L2.2,-2.2 L14,0 L2.2,2.2 L0,14 L-2.2,2.2 L-14,0 L-2.2,-2.2 Z');
-      raysPrimary.setAttribute('fill', starColor);
-      raysPrimary.setAttribute('stroke', darken(starColor, 0.35));
-      raysPrimary.setAttribute('stroke-width', '0.6');
-
-      const starCore = document.createElementNS(svgNS, 'circle');
-      starCore.setAttribute('r', 2.6);
-      starCore.setAttribute('fill', lighten(starColor, 0.78));
-
-      circle.appendChild(raysSecondary);
-      circle.appendChild(raysPrimary);
-      circle.appendChild(starCore);
-
-      // small glint highlight, offset slightly off-center like light
-      // catching one point of the burst rather than the whole thing
-      const glint = document.createElementNS(svgNS, 'circle');
-      glint.setAttribute('class', 'node-glint');
-      glint.setAttribute('cx', -3.2); glint.setAttribute('cy', -3.2);
-      glint.setAttribute('r', 1.4);
-      glint.style.animationDuration = (3.5 + Math.random()*3.5).toFixed(2) + 's';
-      glint.style.animationDelay = '-' + (Math.random()*7).toFixed(2) + 's';
-
       const starWrap = document.createElementNS(svgNS, 'g');
       starWrap.setAttribute('class', 'star-wrap');
-      starWrap.appendChild(glow);
       starWrap.appendChild(circle);
-      starWrap.appendChild(glint);
-
-      // labels point away from this node's hub rather than always
-      // rightward — a node landing on the LEFT side of its hub had its
-      // label extending back through the hub's own label before this
-      const catAngle = CAT_ANGLE_OFFSET[n.category] ?? 0;
-      const labelLeft = catAngle > 90 && catAngle < 270;
-      const labelX = labelLeft ? -13 : 13;
 
       const text = document.createElementNS(svgNS, 'text');
       text.setAttribute('class', 'node-label');
-      text.setAttribute('x', labelX);
+      text.setAttribute('x', 13);
       text.setAttribute('y', 4);
-      if (labelLeft) text.setAttribute('text-anchor', 'end');
       text.textContent = n.name;
-
-      // the star, its label, and its due date (if any) float together as
-      // one gently drifting unit — independent per-star timing/range so
-      // the whole field moves organically rather than in unison
-      const floatWrap = document.createElementNS(svgNS, 'g');
-      floatWrap.setAttribute('class', 'float-wrap');
-      floatWrap.style.setProperty('--float-x', (Math.random()*6 - 3).toFixed(1) + 'px');
-      floatWrap.style.setProperty('--float-y', (Math.random()*8 - 4).toFixed(1) + 'px');
-      floatWrap.style.animationDuration = (7 + Math.random()*5).toFixed(2) + 's';
-      floatWrap.style.animationDelay = '-' + (Math.random()*10).toFixed(2) + 's';
-      floatWrap.appendChild(starWrap);
-      floatWrap.appendChild(text);
+      group.appendChild(starWrap);
+      group.appendChild(text);
 
       if (n.dueDate){
         const due = document.createElementNS(svgNS, 'text');
         due.setAttribute('class', 'node-label node-due');
-        due.setAttribute('x', labelX);
+        due.setAttribute('x', 13);
         due.setAttribute('y', 18);
-        if (labelLeft) due.setAttribute('text-anchor', 'end');
         due.textContent = formatDueShort(n.dueDate);
-        floatWrap.appendChild(due);
+        group.appendChild(due);
       }
 
-      group.appendChild(floatWrap);
       g.appendChild(group);
       n._group = group;
       n._star = circle;
-      n._nameLabel = text;
-      n._dueLabel = n.dueDate ? floatWrap.querySelector('.node-due') : null;
 
       let downAt = null, moved = false;
       group.addEventListener('pointerdown', e => {
@@ -1295,7 +892,6 @@
         if (e.button !== 0 || !downAt) return;
         e.stopPropagation();
         if (!moved){
-          spawnClickRing(n);
           if (n.url) warpTo(n); else toggleTaskDetails(n, e);
         }
         downAt = null;
@@ -1310,36 +906,16 @@
     gEls.g = g;
   }
 
-  // a single expanding ring, fired once right as a star is clicked —
-  // separate from the ambient glow/glint, purely a one-shot response
-  function spawnClickRing(n){
-    if (!n._group) return;
-    const ring = document.createElementNS(svgNS, 'circle');
-    ring.setAttribute('class', 'click-ring');
-    ring.setAttribute('cx', 0); ring.setAttribute('cy', 0);
-    ring.setAttribute('r', 4);
-    ring.setAttribute('stroke', n.color || CATS[n.category]?.hex || CATS.other.hex);
-    n._group.appendChild(ring);
-    ring.addEventListener('animationend', () => ring.remove());
-  }
-
   function positionScene(){
     gEls.g.setAttribute('transform', `translate(${cx+pan.x}, ${cy+pan.y})`);
     gEls.you.setAttribute('transform', 'translate(0,0)');
     nodes.forEach(n => {
       n._group.setAttribute('transform', `translate(${n.x},${n.y})`);
-      const anchor = HUB_ANCHORS[n.hub || 'todo'];
-      n._line.setAttribute('x1', anchor.x); n._line.setAttribute('y1', anchor.y);
+      n._line.setAttribute('x1', 0); n._line.setAttribute('y1', 0);
       n._line.setAttribute('x2', n.x); n._line.setAttribute('y2', n.y);
     });
     const bg = document.getElementById('space-bg');
     if (bg) bg.style.transform = `translate(${pan.x*0.4}px, ${pan.y*0.4}px)`;
-    // the foreground dust streaks were never wired to the pan at all —
-    // they'd sit frozen in place while everything else moved during a
-    // drag. give them a slightly stronger factor since they're meant to
-    // read as closer to the viewer than the stars/nebula behind them.
-    const df = document.getElementById('dust-front');
-    if (df) df.style.transform = `translate(${pan.x*0.55}px, ${pan.y*0.55}px)`;
   }
 
   // ---------- warp into a node ----------
@@ -1354,27 +930,17 @@
   }
 
   // ---------- task details popup ----------
-  // dueDate is now captured as date+time (e.g. "2026-10-03T15:00") from
-  // the datetime-local input, but older tasks saved before this change
-  // only have a plain date ("2026-09-18") — both are handled here
-  function parseDue(dueStr){
-    if (!dueStr) return null;
-    const d = dueStr.includes('T') ? new Date(dueStr) : new Date(dueStr + 'T00:00:00');
-    return isNaN(d.getTime()) ? null : d;
+  function formatDueShort(dateStr){
+    try {
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    } catch(e){ return dateStr; }
   }
-  function formatDueShort(dueStr){
-    const d = parseDue(dueStr);
-    if (!d) return dueStr || '';
-    const datePart = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    if (!dueStr.includes('T')) return datePart;
-    return datePart + ' ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  }
-  function formatDueFull(dueStr){
-    const d = parseDue(dueStr);
-    if (!d) return dueStr || '';
-    const datePart = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
-    if (!dueStr.includes('T')) return datePart;
-    return datePart + ' · ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  function formatDueFull(dateStr){
+    try {
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+    } catch(e){ return dateStr; }
   }
 
   // The task details "menu" is a small constellation built on the fly:
@@ -1385,21 +951,6 @@
   const popupSvgNS = 'http://www.w3.org/2000/svg';
   let popupOpen = false;
   let openPopupId = null;
-  let chainNode = null;
-  let chainAnchorX = 0, chainAnchorY = 0; // the star's screen position when the chain was drawn
-  let chainGroupEl = null;
-
-  // keeps the whole chain rigidly attached to its star as the star moves
-  // (from orbiting, panning, or both) — called every animation frame
-  // while a popup is open, rather than the chain being drawn once and
-  // left behind wherever the star used to be
-  function updateChainPosition(){
-    if (!popupOpen || !chainNode || !chainGroupEl || !chainNode._star) return;
-    const rect = chainNode._star.getBoundingClientRect();
-    const sx = rect.left + rect.width/2;
-    const sy = rect.top + rect.height/2;
-    chainGroupEl.setAttribute('transform', `translate(${sx - chainAnchorX},${sy - chainAnchorY})`);
-  }
 
   function popupDot(svg, x, y, color, r){
     const dot = document.createElementNS(popupSvgNS, 'circle');
@@ -1467,37 +1018,20 @@
     const sy = rect.top + rect.height/2;
     const color = n.color || CATS[n.category]?.hex || '#EDEBF7';
 
-    // everything below gets drawn into this group instead of straight
-    // into the svg, so the whole chain can be shifted as one rigid unit
-    // to follow the star every frame (see updateChainPosition)
-    const chainGroup = document.createElementNS(svg.namespaceURI, 'g');
-    svg.appendChild(chainGroup);
-    chainNode = n;
-    chainAnchorX = sx; chainAnchorY = sy;
-    chainGroupEl = chainGroup;
-    const container = chainGroup;
-
     // branch away from whichever side of the screen has more room
     const flip = sx > window.innerWidth * 0.6;
     const dir = flip ? -1 : 1;
 
-    // the star's own labels get hidden for the duration — they sit
-    // right next to the star, which is exactly where the chain's first
-    // points land, so they were overlapping. The task name becomes the
-    // chain's own first field instead, so nothing is lost.
-    if (n._nameLabel) n._nameLabel.style.display = 'none';
-    if (n._dueLabel) n._dueLabel.style.display = 'none';
-
+    // the star's own label already shows the task name, so the chain
+    // starts straight from Subject rather than repeating it
     const fields = [];
-    fields.push({ value: n.name, caption: 'Task' });
-    if (n.subject) fields.push({ value: n.subject, caption: 'Subject' });
-    if (n.dueDate) fields.push({ value: formatDueFull(n.dueDate), caption: 'Due' });
+    fields.push({ value: n.subject || '—', caption: 'Subject' });
+    fields.push({ value: n.dueDate ? formatDueFull(n.dueDate) : '—', caption: 'Due' });
     if (n.url) fields.push({ value: 'Open ↗', caption: 'Link', isLink: true });
     fields.push({ value: 'Mark done ✓', caption: 'Complete', isAction: true });
 
-    // a gentle zigzag so points don't run in a straight line — spaced
-    // further apart than before so text never runs into the next point
-    const deltas = [[78,-50], [70,50], [-58,50], [-66,-46], [64,-40]];
+    // a gentle zigzag so points don't run in a straight line
+    const deltas = [[62,-40], [56,40], [-46,40], [-52,-36]];
     const segDur = 260; // how long each segment's line takes to draw in
 
     // keep every point clear of the screen edges and away from the fixed
@@ -1507,7 +1041,7 @@
     const fabZoneX = window.innerWidth - 100, fabZoneY = window.innerHeight - 170;
 
     let px = sx, py = sy;
-    popupDot(container, sx, sy, color, 2.6);
+    popupDot(svg, sx, sy, color, 2.6);
 
     const segments = [];
 
@@ -1525,17 +1059,17 @@
       const delay = i * segDur;
 
       // the line grows out to this point first...
-      const line = popupLineGrow(container, px, py, nx, ny, color, delay, segDur);
+      const line = popupLineGrow(svg, px, py, nx, ny, color, delay, segDur);
 
       // ...then its node and label fade in right as it arrives
       const revealAt = delay + segDur - 70;
-      const dot = popupDot(container, nx, ny, color, 2.4);
+      const dot = popupDot(svg, nx, ny, color, 2.4);
       fadeInAfter(dot, revealAt, '0.9');
 
       const textX = nx + 9 * dir;
       const anchorEnd = dir < 0;
-      const capEl = popupText(container, textX, ny - 3, f.caption, 'pl-caption', anchorEnd);
-      const valEl = popupText(container, textX, ny + 11, f.value, 'pl-value', anchorEnd);
+      const capEl = popupText(svg, textX, ny - 3, f.caption, 'pl-caption', anchorEnd);
+      const valEl = popupText(svg, textX, ny + 11, f.value, 'pl-value', anchorEnd);
       fadeInAfter(capEl, revealAt, '1');
       fadeInAfter(valEl, revealAt, '1');
       if (f.isLink){
@@ -1630,12 +1164,6 @@
   function hideTaskDetails(){
     popupOpen = false;
     openPopupId = null;
-    if (chainNode){
-      if (chainNode._nameLabel) chainNode._nameLabel.style.display = '';
-      if (chainNode._dueLabel) chainNode._dueLabel.style.display = '';
-    }
-    chainNode = null;
-    chainGroupEl = null;
     const svg = document.getElementById('popup-line');
     if (svg) svg.innerHTML = '';
   }
@@ -1657,70 +1185,82 @@
     const s = 34;
     const targetA = cx - s*n.x, targetB = cy - s*n.y;
 
-    // stop the idle glimmer and drop the glow filter for the duration —
-    // re-rasterizing a blur while scaling 34x is expensive and was the
-    // real source of the lag; driving everything from one rAF loop here
-    // (same approach as the zoom-out-to-home animation) keeps it smooth
-    nodes.forEach(o => { o._star.style.animation = 'none'; o._star.style.filter = 'none'; });
+    // stop the idle glimmer so it isn't fighting the warp's own transform
+    nodes.forEach(o => { o._star.style.animation = 'none'; });
+
+    // a blurred SVG filter on something being scaled 34x is genuinely
+    // expensive — the browser has to re-rasterize the blur at every
+    // intermediate size — so drop the glow filters for the duration of
+    // the warp entirely rather than trying to animate through them
+    nodes.forEach(o => { o._star.style.filter = 'none'; });
+    gEls.you.querySelectorAll('.you-halo').forEach(h => { h.style.animationPlayState = 'paused'; });
+
+    // pause the drifting nebula/dust/streak layers too, so the compositor
+    // isn't juggling several unrelated animations at once during the dive
+    const ambient = document.querySelectorAll('.nebula, .dust, .streak');
+    ambient.forEach(el => { el.style.animationPlayState = 'paused'; });
+
+    // hint the compositor to promote these to their own layers up front,
+    // instead of discovering mid-transition that it needs to
+    g.style.willChange = 'transform';
+    if (bg) bg.style.willChange = 'transform';
 
     const dur = 420;
-    let startTs = null;
-    let navigated = false;
+    const fast = Math.round(dur * 0.5);
+    const ease = 'cubic-bezier(0.7, 0, 0.84, 0)'; // steep ease-in, close to exponential acceleration
 
-    function frame(ts){
-      if (startTs === null) startTs = ts;
-      const t = Math.min((ts - startTs) / dur, 1);
-      const p = easeInExpo(t);
+    g.style.transition = `transform ${dur}ms ${ease}`;
+    if (bg) bg.style.transition = `transform ${dur}ms ${ease}`;
+    gEls.you.style.transition = `opacity ${fast}ms ease-in`;
+    n._line.style.transition = `opacity ${fast}ms ease-in`;
+    n._star.style.transition = `opacity ${fast}ms ease-in`;
 
-      // camera rushing toward the target star
-      const curA = lerp(startA, targetA, p);
-      const curB = lerp(startB, targetB, p);
-      const curS = lerp(1, s, p);
-      g.style.transform = `translate(${curA}px, ${curB}px) scale(${curS})`;
+    nodes.forEach(o => {
+      if (o === n) return;
+      const dist = Math.hypot(o.x, o.y) || 1;
+      const angleDeg = Math.atan2(o.y, o.x) * 180/Math.PI + 90;
+      o._star.style.transition = `transform ${dur}ms ${ease}, opacity ${fast}ms ease-in`;
+      o._line.style.transition = `opacity ${fast}ms ease-in`;
+      o._star._warpStreak = `rotate(${angleDeg}deg) scale(0.25, ${(1 + 16*(dist/200)).toFixed(2)})`;
+    });
 
-      // the whole starfield surges toward the viewer too
-      if (bg) bg.style.transform = `translate(${pan.x*0.4}px, ${pan.y*0.4}px) scale(${lerp(1, 3.6, p)})`;
+    requestAnimationFrame(() => {
+      g.style.transform = `translate(${targetA}px, ${targetB}px) scale(${s})`;
+      if (bg) bg.style.transform = `translate(${pan.x*0.4}px, ${pan.y*0.4}px) scale(3.6)`;
+      gEls.you.style.opacity = '0';
+      n._line.style.opacity = '0';
+      n._star.style.opacity = '0';
 
-      // everything else fades away as we dive in
-      gEls.you.style.opacity = String(Math.max(0, 1 - p*1.8));
-      n._line.style.opacity = String(Math.max(0, 1 - p*1.6));
-      n._star.style.opacity = String(Math.max(0, 1 - Math.max(0, p-0.35)/0.5));
       nodes.forEach(o => {
         if (o === n) return;
-        o._group.style.opacity = String(Math.max(0, 1 - p*1.6));
+        o._star.style.transform = o._star._warpStreak;
+        o._star.style.opacity = '0';
+        o._line.style.opacity = '0';
       });
+    });
 
-      // start the actual page navigation a bit before the animation
-      // visually finishes, rather than waiting for a full stop — the
-      // browser begins swapping pages while the last bit of motion is
-      // still playing, which is what makes it read as one continuous
-      // motion instead of "stop, then jump"
-      if (!navigated && t >= 0.88){
-        navigated = true;
-        const flash = document.getElementById('warp-flash');
-        flash.style.background = `radial-gradient(circle at 50% 50%, ${n.color || CATS[n.category]?.hex || '#fff'} 0%, transparent 70%)`;
-        flash.style.transition = 'opacity 180ms ease';
-        flash.style.opacity = '0.7';
-        window.location.href = url;
-      }
+    setTimeout(() => {
+      const flash = document.getElementById('warp-flash');
+      flash.style.background = `radial-gradient(circle at 50% 50%, ${n.color || CATS[n.category]?.hex || '#fff'} 0%, transparent 70%)`;
+      flash.style.transition = 'opacity 180ms ease';
+      flash.style.opacity = '0.7';
+      setTimeout(() => { flash.style.opacity = '0'; }, 180);
+      window.location.href = url;
 
-      if (t < 1){
-        requestAnimationFrame(frame);
-      } else {
-        // safety net: if navigation doesn't actually happen, restore
-        // the page instead of leaving it faded out and locked forever
-        setTimeout(() => {
-          nodes.forEach(o => { o._star.style.filter = ''; o._star.style.animation = ''; o._group.style.opacity = ''; });
-          n._star.style.opacity = '';
-          n._line.style.opacity = '';
-          gEls.you.style.opacity = '';
-          svg.style.pointerEvents = '';
-          warping = false;
-        }, 600);
-      }
-    }
-    requestAnimationFrame(frame);
+      // safety net: if navigation doesn't actually happen (blocked,
+      // interrupted, or this is running somewhere that won't navigate),
+      // restore the page instead of leaving the ambient animations
+      // paused and the graph locked forever
+      setTimeout(() => {
+        ambient.forEach(el => { el.style.animationPlayState = ''; });
+        gEls.you.querySelectorAll('.you-halo').forEach(h => { h.style.animationPlayState = ''; });
+        nodes.forEach(o => { o._star.style.filter = ''; o._star.style.animation = ''; });
+        svg.style.pointerEvents = '';
+        warping = false;
+      }, 600);
+    }, dur);
   }
+
   function resetWarp(){
     const g = gEls.g;
     g.style.transition = 'transform 420ms ease-out';
@@ -1750,19 +1290,10 @@
     }, 440);
   }
 
-  // some browsers restore this exact page from a back-forward cache
-  // when you hit Back after a star link took you to an external site —
-  // that restores the frozen mid-warp visual state (zoomed in, faded
-  // out, clicks disabled) instead of a fresh load. Catch that case and
-  // put everything back to normal.
-  window.addEventListener('pageshow', (e) => {
-    if (e.persisted) resetWarp();
-  });
-
   // ---------- zoom out to go home (reverse of warping into a star) ----------
   function zoomOutHome(){
     if (warping) return;
-    if (reduceMotion){ window.location.href = 'index.html'; return; }
+    if (reduceMotion){ window.location.href = 'school.html'; return; }
 
     warping = true;
     svg.style.pointerEvents = 'none';
@@ -1781,7 +1312,6 @@
 
     const dur = 560;
     let startTs = null;
-    let navigated = false;
 
     function frame(ts){
       if (startTs === null) startTs = ts;
@@ -1796,17 +1326,11 @@
       // the backdrop recedes too, more gently than the foreground
       if (bg) bg.style.transform = `translate(${pan.x*0.4}px, ${pan.y*0.4}px) scale(${lerp(1, 0.55, p)})`;
 
-      // start navigating shortly before the animation visually
-      // finishes, same idea as warpTo — carries the motion through
-      // into the next page instead of a dead stop then a jump
-      if (!navigated && t >= 0.88){
-        navigated = true;
-        window.location.href = 'index.html';
-      }
-
       if (t < 1){
         requestAnimationFrame(frame);
       } else {
+        window.location.href = 'school.html';
+
         // safety net: restore interactivity if navigation didn't
         // actually happen, instead of leaving the graph locked
         setTimeout(() => {
@@ -1847,68 +1371,6 @@
     }
   }
 
-  // School, RA, and Lab slowly drift around To-do along their orbit ring
-  // — this runs continuously, separately from the initial settle-in tween
-  let orbitLastTs = null;
-  let orbitStarted = false;
-
-  // the second hand spins immediately on load — its own lightweight
-  // rAF loop, separate from orbitFrame's deliberate startup delay below
-  let decorLastTs = null;
-  let handAngle = 0;
-  function decorFrame(ts){
-    if (decorLastTs === null) decorLastTs = ts;
-    const dt = (ts - decorLastTs) / 1000;
-    decorLastTs = ts;
-    if (gEls.handWrap){
-      handAngle = (handAngle + (360/12) * dt) % 360;
-      gEls.handWrap.setAttribute('transform', `rotate(${handAngle.toFixed(2)})`);
-    }
-    requestAnimationFrame(decorFrame);
-  }
-  if (!reduceMotion) requestAnimationFrame(decorFrame);
-
-  function orbitFrame(ts){
-    if (orbitLastTs === null) orbitLastTs = ts;
-    const dt = (ts - orbitLastTs) / 1000;
-    orbitLastTs = ts;
-
-    ['school', 'ra', 'lab'].forEach(hub => {
-      const o = ORBIT[hub];
-      o.angle += o.speed * dt;
-      const anchor = HUB_ANCHORS[hub];
-      anchor.x = Math.cos(o.angle) * o.radius;
-      anchor.y = Math.sin(o.angle) * o.radius;
-      if (gEls.miniHubs && gEls.miniHubs[hub]){
-        gEls.miniHubs[hub].setAttribute('transform', `translate(${anchor.x},${anchor.y})`);
-      }
-    });
-
-    nodes.forEach(n => {
-      if (n.hub !== 'school' && n.hub !== 'ra' && n.hub !== 'lab') return;
-      const anchor = HUB_ANCHORS[n.hub];
-      n.x = anchor.x + (n.relX || 0);
-      n.y = anchor.y + (n.relY || 0);
-      n.tx = n.x; n.ty = n.y;
-      if (n._group) n._group.setAttribute('transform', `translate(${n.x},${n.y})`);
-      if (n._line){
-        n._line.setAttribute('x1', anchor.x); n._line.setAttribute('y1', anchor.y);
-        n._line.setAttribute('x2', n.x); n._line.setAttribute('y2', n.y);
-      }
-    });
-
-    // keep any open task-detail chain glued to its star as it moves
-    updateChainPosition();
-
-    requestAnimationFrame(orbitFrame);
-  }
-  if (!reduceMotion){
-    if (!orbitStarted){
-      orbitStarted = true;
-      setTimeout(() => requestAnimationFrame(orbitFrame), 1500);
-    }
-  }
-
   svg.addEventListener('pointerdown', e => {
     panning = true; panStart = {x: e.clientX - pan.x, y: e.clientY - pan.y};
     svg.classList.add('dragging');
@@ -1925,158 +1387,59 @@
     positionScene();
   });
 
-  document.getElementById('home-icon-btn').addEventListener('click', () => zoomOutHome());
+  // ---------- drawer ----------
+  const drawer = document.getElementById('drawer');
+  document.getElementById('drawer-toggle').addEventListener('click', () => {
+    drawer.classList.add('open'); renderLinkList();
+  });
+  document.getElementById('drawer-close').addEventListener('click', () => drawer.classList.remove('open'));
+
+  function renderLinkList(){
+    const list = document.getElementById('link-list');
+    list.innerHTML = '';
+    if (!nodes.length){
+      list.innerHTML = '<div class="empty-note">Nothing added yet.</div>';
+      return;
+    }
+    nodes.forEach(n => {
+      const row = document.createElement('div');
+      row.className = 'link-row';
+      row.innerHTML = `
+        <span class="dot" style="background:${n.color || CATS[n.category]?.hex || CATS.other.hex}"></span>
+        <span class="name">${n.name}</span>
+        <button data-id="${n.id}">Remove</button>
+      `;
+      row.querySelector('button').addEventListener('click', () => removeNode(n.id));
+      list.appendChild(row);
+    });
+  }
 
   function removeNode(id){
     nodes = nodes.filter(n => n.id !== id);
     saveNodes();
     buildScene();
     relayout();
+    renderLinkList();
   }
 
-  // ---------- Next Class / Next Shift: linked Google Calendars ----------
-  // one Google API key, two separate calendar IDs — one for classes,
-  // one for shifts. Stored under a dedicated key so it syncs across
-  // devices the same way everything else on the site does.
-  function loadCalConfig(){
-    try {
-      const raw = localStorage.getItem('schedule-calendars-config');
-      return raw ? JSON.parse(raw) : { apiKey: '', classCalendarId: '', shiftCalendarId: '' };
-    } catch(e){ return { apiKey: '', classCalendarId: '', shiftCalendarId: '' }; }
-  }
-  function saveCalConfig(cfg){
-    SiteSync.save('schedule-calendars-config', cfg);
-  }
-  function setCalStatus(msg, isError){
-    const el = document.getElementById('cal-modal-status');
-    if (!el) return;
-    el.textContent = msg;
-    el.style.color = isError ? '#E4483C' : '';
-  }
-  async function fetchNextEvent(apiKey, calendarId){
-    const timeMin = new Date().toISOString();
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`
-      + `?key=${encodeURIComponent(apiKey)}&timeMin=${encodeURIComponent(timeMin)}`
-      + `&maxResults=1&orderBy=startTime&singleEvents=true`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || ('Request failed (' + res.status + ')'));
-    return (data.items || [])[0] || null;
-  }
-  function formatEventRange(ev){
-    if (!ev) return '—';
-    const name = ev.summary || '(untitled)';
-    if (!ev.start.dateTime){
-      return name; // all-day event — no meaningful time range to show
-    }
-    const start = new Date(ev.start.dateTime);
-    const end = new Date(ev.end.dateTime || ev.end.date);
-    const startTime = start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    const endTime = end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    return `${name} ${startTime}–${endTime}`;
-  }
-  async function refreshScheduleCalendars(){
-    const cfg = loadCalConfig();
-    if (!cfg.apiKey) return;
-    if (cfg.classCalendarId){
-      try {
-        const ev = await fetchNextEvent(cfg.apiKey, cfg.classCalendarId);
-        const el = document.getElementById('topbar-next-class');
-        if (el) el.textContent = formatEventRange(ev);
-      } catch(e){ /* leave the existing value showing rather than blank it out */ }
-    }
-    if (cfg.shiftCalendarId){
-      try {
-        const ev = await fetchNextEvent(cfg.apiKey, cfg.shiftCalendarId);
-        const el = document.getElementById('topbar-next-shift');
-        if (el) el.textContent = formatEventRange(ev);
-      } catch(e){}
-    }
-  }
-  function initCalSettingsUI(){
-    const overlay = document.getElementById('cal-modal-overlay');
-    const btn = document.getElementById('topbar-cal-settings-btn');
-    if (!overlay || !btn) return;
-    btn.addEventListener('click', () => {
-      const cfg = loadCalConfig();
-      document.getElementById('cal-api-key').value = cfg.apiKey || '';
-      document.getElementById('cal-class-id').value = cfg.classCalendarId || '';
-      document.getElementById('cal-shift-id').value = cfg.shiftCalendarId || '';
-      setCalStatus('');
-      overlay.classList.add('open');
-      buildModalFrame('cal-modal', 'cal-modal-frame');
-    });
-    document.getElementById('cal-modal-cancel').addEventListener('click', () => overlay.classList.remove('open'));
-    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
-    document.getElementById('cal-modal-save').addEventListener('click', async () => {
-      const cfg = {
-        apiKey: document.getElementById('cal-api-key').value.trim(),
-        classCalendarId: document.getElementById('cal-class-id').value.trim(),
-        shiftCalendarId: document.getElementById('cal-shift-id').value.trim(),
-      };
-      if (!cfg.apiKey || (!cfg.classCalendarId && !cfg.shiftCalendarId)){
-        setCalStatus('Add your API key and at least one calendar ID.', true);
-        return;
-      }
-      saveCalConfig(cfg);
-      setCalStatus('Syncing…');
-      try {
-        await refreshScheduleCalendars();
-        setCalStatus('Synced.');
-      } catch(e){
-        setCalStatus('Sync failed: ' + e.message, true);
-      }
-    });
-  }
-
-  // clock — fixed to the top-right of the viewport, independent of
-  // the pannable graph
+  // clock
   function updateClock(){
     const now = new Date();
-    document.getElementById('topbar-clock-time').textContent =
+    document.getElementById('clock').textContent =
       now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-    document.getElementById('topbar-clock-date').textContent =
+    document.getElementById('clock-date').textContent =
       now.toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'});
-    updateDueSoon();
-  }
-  // "Due Soon" reads the same To-do task data the To-do page itself
-  // uses (alltodo-nodes), so it works from any page without needing
-  // its own separate data entry. "Next Class" and "Next Shift" are
-  // populated from linked Google Calendars — see the settings gear on
-  // the clock widget, and refreshScheduleCalendars() above.
-  // dueDate is captured as date+time (e.g. "2026-10-03T15:00") from
-  // the To-do page's datetime-local input; older tasks saved before
-  // that change only have a plain date ("2026-09-18") and fall back to
-  // showing just the date since there's no real time to show
-  function updateDueSoon(){
-    const el = document.getElementById('topbar-due-soon');
-    if (!el) return;
-    let tasks = [];
-    try {
-      const raw = localStorage.getItem('alltodo-nodes');
-      tasks = raw ? JSON.parse(raw) : [];
-    } catch(e){}
-    const now = Date.now();
-    let nearest = null;
-    tasks.forEach(t => {
-      if (!t.dueDate) return;
-      const hasTime = t.dueDate.includes('T');
-      const d = hasTime ? new Date(t.dueDate) : new Date(t.dueDate + 'T23:59:59');
-      const due = d.getTime();
-      if (!isNaN(due) && due >= now && (!nearest || due < nearest.due)){
-        nearest = { name: t.name, due, hasTime, date: d };
-      }
-    });
-    if (!nearest){
-      el.textContent = '—';
-    } else if (nearest.hasTime){
-      el.textContent = nearest.name + ' ' + nearest.date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    } else {
-      el.textContent = nearest.name + ' ' + nearest.date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
   }
   updateClock();
   setInterval(updateClock, 1000*15);
+
+  // notes
+  const notesEl = document.getElementById('notes');
+  let notesTimer = null;
+  notesEl.addEventListener('input', () => {
+    clearTimeout(notesTimer);
+    notesTimer = setTimeout(() => saveNotes(notesEl.value), 500);
+  });
 
   // ---------- add modal ----------
   const overlay = document.getElementById('modal-overlay');
@@ -2084,14 +1447,10 @@
   const modalSvgNS = 'http://www.w3.org/2000/svg';
   const STAR_PATH = 'M0,-10 C1.1,-3.3 3.3,-1.1 10,0 C3.3,1.1 1.1,3.3 0,10 C-1.1,3.3 -3.3,1.1 -10,0 C-3.3,-1.1 -1.1,-3.3 0,-10 Z';
 
-  function buildModalFrame(boxId, svgId){
-    boxId = boxId || 'modal';
-    svgId = svgId || 'modal-frame';
-    const modal = document.getElementById(boxId);
-    const svg = document.getElementById(svgId);
-    if (!modal || !svg) return;
+  function buildModalFrame(){
+    const modal = document.getElementById('modal');
+    const svg = document.getElementById('modal-frame');
     const w = modal.offsetWidth, h = modal.offsetHeight;
-    if (!w || !h) return;
     svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
     svg.setAttribute('width', w);
     svg.setAttribute('height', h);
@@ -2115,7 +1474,7 @@
     glowRect.setAttribute('width', rw); glowRect.setAttribute('height', rh);
     glowRect.setAttribute('fill', 'none');
     glowRect.setAttribute('stroke', '#EDEBF7');
-    glowRect.setAttribute('stroke-width', '2.5');
+    glowRect.setAttribute('stroke-width', '4');
     glowRect.setAttribute('opacity', '0.45');
     glowRect.setAttribute('filter', 'url(#frameGlow)');
     svg.appendChild(glowRect);
@@ -2125,7 +1484,7 @@
     rect.setAttribute('width', rw); rect.setAttribute('height', rh);
     rect.setAttribute('fill', 'none');
     rect.setAttribute('stroke', '#EDEBF7');
-    rect.setAttribute('stroke-width', '1.1');
+    rect.setAttribute('stroke-width', '1.75');
     rect.setAttribute('opacity', '0.9');
     svg.appendChild(rect);
 
@@ -2153,7 +1512,7 @@
     document.getElementById('f-subject').value = '';
     document.getElementById('f-due').value = '';
     document.getElementById('f-url').value = '';
-    document.getElementById('f-color').value = '#2ECC71';
+    document.getElementById('f-color').value = '#E13A46';
     overlay.classList.add('open');
     document.getElementById('f-name').focus();
     buildModalFrame();
@@ -2164,7 +1523,6 @@
   const LAYOUT_CATS = ['apps', 'social', 'projects', 'other'];
 
   document.getElementById('save-btn').addEventListener('click', () => {
-    const hub = document.getElementById('f-hub').value;
     const name = document.getElementById('f-name').value.trim();
     const subject = document.getElementById('f-subject').value.trim();
     const dueDate = document.getElementById('f-due').value;
@@ -2174,11 +1532,12 @@
     // spread new tasks across all four angle slots rather than letting
     // them all fall back to the same default direction
     const category = LAYOUT_CATS[nodes.length % LAYOUT_CATS.length];
-    nodes.push({ id: 'n'+Date.now(), name, url, subject, dueDate, color, category, hub });
+    nodes.push({ id: 'n'+Date.now(), name, url, subject, dueDate, color, category });
     saveNodes();
     overlay.classList.remove('open');
     buildScene();
     relayout();
+    renderLinkList();
   });
 
   // ---------- init ----------
@@ -2186,17 +1545,7 @@
     await loadState();
     buildScene();
     relayout();
-    // fade the whole graph in, rather than it popping in the instant
-    // buildScene() finishes — respects reduced-motion by skipping
-    // straight to visible instead of animating
-    if (reduceMotion){
-      svg.style.opacity = '1';
-    } else {
-      setTimeout(() => { svg.style.opacity = '1'; }, 60);
-    }
-    initCalSettingsUI();
-    refreshScheduleCalendars();
-    setInterval(refreshScheduleCalendars, 10 * 60 * 1000);
+    initCanvasSyncUI();
   })();
 })();
 </script>

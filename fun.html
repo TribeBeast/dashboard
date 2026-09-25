@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hub</title>
+<title>Fun</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -14,13 +14,13 @@
     --line: rgba(255,255,255,0.09);
     --text: #EDEBF7;
     --text-dim: #9296B8;
-    --c-apps: #34D5C5;
-    --c-social: #E85DA0;
-    --c-projects: #9B7EF2;
-    --c-other: #F2B85C;
-    --you-core: #FFF6E0;
-    --you-glow: #FFD98E;
-    --you-shadow: #EA9B00;
+    --c-apps: #FF8A3D;
+    --c-social: #FF765C;
+    --c-projects: #FFB523;
+    --c-other: #FFF284;
+    --you-core: #FFBB8F;
+    --you-glow: #FDE7D8;
+    --you-shadow: #CC5100;
   }
   *{ box-sizing: border-box; }
   html, body{
@@ -220,7 +220,7 @@
     pointer-events: none;
     text-anchor: middle;
   }
-  .you-node{ cursor: default; }
+  .you-node{ cursor: pointer; }
   .you-halo{
     transform-box: fill-box;
     transform-origin: center;
@@ -369,6 +369,7 @@
 </div>
 
 <div id="fab-controls">
+  <a href="index.html" class="icon-btn" aria-label="Home" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-9"/></svg></a>
   <button id="drawer-toggle" class="icon-btn" aria-label="Widgets" title="Widgets"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="1.6" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="7" cy="17" r="1.6" fill="currentColor" stroke="none"/></svg></button>
   <button id="add-btn" class="icon-btn" aria-label="Add a link" title="Add a link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 </div>
@@ -429,18 +430,13 @@
 <script>
 (function(){
   const CATS = {
-    apps:     { label: 'School', hex: '#E4483C' },
-    social:   { label: 'Work',   hex: '#34D5C5' },
-    projects: { label: 'Fun',    hex: '#FF8A3D' },
-    other:    { label: 'Photography', hex: '#F2F0EA' },
+    apps:     { label: 'Fun', hex: '#FF8A3D' },
+    social:   { label: 'Fun', hex: '#FF765C' },
+    projects: { label: 'Fun', hex: '#FFB523' },
+    other:    { label: 'Fun', hex: '#FFF284' },
   };
 
-  const DEFAULT_NODES = [
-    { id: 'n1', name: 'School', url: 'school.html', category: 'apps' },
-    { id: 'n2', name: 'Work',   url: 'work.html',   category: 'social' },
-    { id: 'n3', name: 'Fun',    url: 'fun.html',     category: 'projects' },
-    { id: 'n4', name: 'Photography', url: 'photography.html', category: 'other' },
-  ];
+  const DEFAULT_NODES = [];
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -551,28 +547,28 @@
   async function loadState(){
     let saved = null;
     try {
-      const raw = localStorage.getItem('hub-nodes');
+      const raw = localStorage.getItem('fun-nodes');
       if (raw) saved = JSON.parse(raw);
     } catch(e){}
     nodes = saved && saved.length ? saved : DEFAULT_NODES.map(n => ({...n}));
 
     try {
-      const nt = localStorage.getItem('hub-notes');
+      const nt = localStorage.getItem('fun-notes');
       if (nt) document.getElementById('notes').value = nt;
     } catch(e){}
   }
   async function saveNodes(){
-    try { localStorage.setItem('hub-nodes', JSON.stringify(nodes)); }
+    try { localStorage.setItem('fun-nodes', JSON.stringify(nodes)); }
     catch(e){ console.error('Could not save links', e); }
   }
   async function saveNotes(val){
-    try { localStorage.setItem('hub-notes', val); }
+    try { localStorage.setItem('fun-notes', val); }
     catch(e){ console.error('Could not save notes', e); }
   }
 
   // ---------- layout ----------
-  const RING_RADIUS = { apps: 160, social: 200, projects: 140, other: 220 };
-  const CAT_ANGLE_OFFSET = { apps: 205, social: 15, projects: 100, other: 295 };
+  const RING_RADIUS = { apps: 225, social: 165, projects: 275, other: 200 };
+  const CAT_ANGLE_OFFSET = { apps: -150, social: -25, projects: 105, other: 210 };
 
   // stable pseudo-random 0..1 from a string, so the "natural" jitter
   // stays put across relayouts instead of reshuffling every time
@@ -666,7 +662,7 @@
     const label = document.createElementNS(svgNS, 'text');
     label.setAttribute('class', 'you-label');
     label.setAttribute('y', 44);
-    label.textContent = 'Home';
+    label.textContent = 'Fun';
 
     you.appendChild(haloOuter);
     you.appendChild(haloInner);
@@ -675,6 +671,18 @@
     you.appendChild(label);
     g.appendChild(you);
     gEls.you = you;
+
+    let youDownAt = null, youMoved = false;
+    you.addEventListener('pointerdown', e => { youDownAt = {x:e.clientX,y:e.clientY}; youMoved = false; e.stopPropagation(); });
+    you.addEventListener('pointermove', e => {
+      if (!youDownAt) return;
+      if (Math.abs(e.clientX-youDownAt.x) > 4 || Math.abs(e.clientY-youDownAt.y) > 4) youMoved = true;
+    });
+    you.addEventListener('pointerup', e => {
+      e.stopPropagation();
+      if (!youMoved) zoomOutHome();
+      youDownAt = null;
+    });
 
     nodes.forEach(n => {
       const group = document.createElementNS(svgNS, 'g');

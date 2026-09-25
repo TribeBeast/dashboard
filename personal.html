@@ -1435,6 +1435,10 @@
     let classDueItems = [];
     let dedicatedDueItems = [];
 
+    // renders unconditionally, same as Due Soon does — an unlinked
+    // or empty calendar shows the "—" placeholder rather than staying
+    // completely blank while everything else on the page has loaded
+    let classPool = [];
     if (cfg.classIcsUrl){
       try {
         // fetch a batch of upcoming occurrences, not just the nearest
@@ -1442,7 +1446,6 @@
         // together with assignment/quiz due-date markers, and we need
         // enough of them to find every same-day one of each kind
         const events = await fetchUpcomingIcsEvents(cfg.classIcsUrl, 30);
-        let classPool = [];
         events.forEach(ev => {
           const durationMin = (new Date(ev.end) - new Date(ev.start)) / 60000;
           // a due-date marker is essentially instantaneous, OR an
@@ -1456,9 +1459,9 @@
             classPool.push({ date: new Date(ev.start), text: formatEventRange({ ...ev, summary: cleanEventName(ev.summary) }) });
           }
         });
-        renderSameDayList(document.getElementById('topbar-next-class-list'), classPool);
       } catch(e){ errors.push('Class: ' + e.message); }
     }
+    renderSameDayList(document.getElementById('topbar-next-class-list'), classPool);
 
     if (cfg.dueIcsUrl){
       try {
@@ -1466,18 +1469,25 @@
       } catch(e){ errors.push('Due Soon: ' + e.message); }
     }
 
-    canvasDueItems = classDueItems.concat(dedicatedDueItems);
+    // Due Soon uses ONLY the dedicated Due Soon calendar now — the
+    // Class calendar's due-markers (classDueItems) are still split off
+    // so they don't get mistaken for real class sessions in Next
+    // Class, but they no longer feed into Due Soon
+    canvasDueItems = dedicatedDueItems;
     updateDueSoon();
 
+    // same "always render, empty pool shows the placeholder" fix as
+    // Next Class above
+    let shiftPool = [];
     if (cfg.shiftIcsUrl){
       try {
         // same "batch + group by nearest day" treatment as Class,
         // rather than just grabbing the single soonest shift
         const events = await fetchUpcomingIcsEvents(cfg.shiftIcsUrl, 20);
-        const shiftPool = events.map(ev => ({ date: new Date(ev.start), text: formatEventRange(ev) }));
-        renderSameDayList(document.getElementById('topbar-next-shift-list'), shiftPool);
+        shiftPool = events.map(ev => ({ date: new Date(ev.start), text: formatEventRange(ev) }));
       } catch(e){ errors.push('Shift: ' + e.message); }
     }
+    renderSameDayList(document.getElementById('topbar-next-shift-list'), shiftPool);
     return errors;
   }
   function initCalSettingsUI(){
@@ -1570,27 +1580,13 @@
     );
     sameDay.forEach(item => addTopbarRow(container, item.text));
   }
+  // Due Soon is exclusively the dedicated Due Soon calendar you link —
+  // no To-do tasks, no Class-calendar due-markers, nothing else mixed in
   function updateDueSoon(){
     const container = document.getElementById('topbar-due-soon-list');
     if (!container) return;
-    let tasks = [];
-    try {
-      const raw = localStorage.getItem('alltodo-nodes');
-      tasks = raw ? JSON.parse(raw) : [];
-    } catch(e){}
     const now = Date.now();
     let pool = [];
-    tasks.forEach(t => {
-      if (!t.dueDate) return;
-      const hasTime = t.dueDate.includes('T');
-      const d = hasTime ? new Date(t.dueDate) : new Date(t.dueDate + 'T23:59:59');
-      const due = d.getTime();
-      if (!isNaN(due) && due >= now){
-        pool.push({ date: d, text: t.name + ' ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) });
-      }
-    });
-    // also fold in every upcoming Canvas-style due-date item collected
-    // from your linked calendars
     canvasDueItems.forEach(ev => {
       if (EXCLUDED_EVENT_TITLES.includes((ev.summary || '').trim())) return;
       let d;

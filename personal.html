@@ -165,8 +165,8 @@
   /* fixed to the viewport, not the pannable graph — stays put no
      matter how the person drags around the page */
   #topbar-clock{
-    position: fixed; top: 22px; right: 26px; z-index: 6;
-    text-align: right; pointer-events: none;
+    position: fixed; top: 22px; left: 26px; z-index: 6;
+    text-align: left; pointer-events: none;
     font-family: 'Fraunces', serif; color: #EDEBF7;
   }
   #topbar-clock-time{
@@ -179,9 +179,32 @@
   }
   .topbar-subline{
     font-family: 'Inter', sans-serif; font-size: 11.5px;
-    margin-top: 5px; display: flex; justify-content: flex-end; gap: 6px;
+    margin-top: 5px; display: flex; justify-content: flex-start; gap: 6px;
   }
-  .topbar-sublabel{ color: var(--text-dim); }
+  /* Due Soon can show several items (everything due the same day),
+     stacked vertically underneath its label instead of sitting inline
+     next to it like the single-item rows do */
+  .topbar-subline-stacked{ flex-direction: column; gap: 3px; }
+  .topbar-due-list{ display: flex; flex-direction: column; gap: 3px; }
+  .topbar-sublabel{ color: var(--text-dim); flex-shrink: 0; }
+  .topbar-subvalue{
+    display: inline-block; max-width: 150px; overflow: hidden;
+    white-space: nowrap; vertical-align: top;
+  }
+  .topbar-subvalue-inner{ display: inline-block; white-space: nowrap; }
+  .topbar-subvalue-inner.marquee{
+    animation: topbar-marquee var(--marquee-dur, 6s) ease-in-out infinite;
+  }
+  /* pauses at the start, scrolls to the end, pauses there, then
+     scrolls back and pauses at the start again before looping */
+  @keyframes topbar-marquee{
+    0%, 12% { transform: translateX(0); }
+    45%, 58% { transform: translateX(var(--scroll-distance, 0px)); }
+    92%, 100% { transform: translateX(0); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .topbar-subvalue-inner.marquee{ animation: none; }
+  }
   #topbar-cal-settings-btn{
     pointer-events: auto; margin-top: 8px;
     background: none; border: none; color: var(--text-dim);
@@ -470,9 +493,9 @@
 <div id="topbar-clock">
   <div id="topbar-clock-time">--:--</div>
   <div id="topbar-clock-date"></div>
-  <div class="topbar-subline"><span class="topbar-sublabel">Next Class</span><span id="topbar-next-class">—</span></div>
-  <div class="topbar-subline"><span class="topbar-sublabel">Next Shift</span><span id="topbar-next-shift">—</span></div>
-  <div class="topbar-subline"><span class="topbar-sublabel">Due Soon</span><span id="topbar-due-soon">—</span></div>
+  <div class="topbar-subline topbar-subline-stacked"><span class="topbar-sublabel">Next Class</span><div id="topbar-next-class-list" class="topbar-due-list"></div></div>
+  <div class="topbar-subline topbar-subline-stacked"><span class="topbar-sublabel">Next Shift</span><div id="topbar-next-shift-list" class="topbar-due-list"></div></div>
+  <div class="topbar-subline topbar-subline-stacked"><span class="topbar-sublabel">Due Soon</span><div id="topbar-due-soon-list" class="topbar-due-list"></div></div>
   <button id="topbar-cal-settings-btn" aria-label="Link calendars" title="Link calendars">⚙</button>
 </div>
 
@@ -487,6 +510,10 @@
     <div class="field">
       <label for="cal-shift-ics">Shift calendar ICS URL</label>
       <input id="cal-shift-ics" type="text" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics">
+    </div>
+    <div class="field">
+      <label for="cal-due-ics">Due Soon calendar ICS URL</label>
+      <input id="cal-due-ics" type="text" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics">
     </div>
     <div class="modal-actions">
       <button id="cal-modal-cancel">Cancel</button>
@@ -1292,8 +1319,8 @@
   function loadCalConfig(){
     try {
       const raw = localStorage.getItem('schedule-calendars-config');
-      return raw ? JSON.parse(raw) : { classIcsUrl: '', shiftIcsUrl: '' };
-    } catch(e){ return { classIcsUrl: '', shiftIcsUrl: '' }; }
+      return raw ? JSON.parse(raw) : { classIcsUrl: '', shiftIcsUrl: '', dueIcsUrl: '' };
+    } catch(e){ return { classIcsUrl: '', shiftIcsUrl: '', dueIcsUrl: '' }; }
   }
   function saveCalConfig(cfg){
     SiteSync.save('schedule-calendars-config', cfg);
@@ -1307,15 +1334,77 @@
   // browsers can't fetch most ICS URLs directly (CORS), so this asks
   // the Worker to fetch and parse it server-side instead — same Worker
   // that already handles sync and the password check
-  async function fetchNextIcsEvent(icsUrl){
+  async function fetchUpcomingIcsEvents(icsUrl, limit){
     const res = await fetch(SCHEDULE_WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'fetchIcs', url: icsUrl }),
+      body: JSON.stringify({ action: 'fetchIcs', url: icsUrl, limit: limit || 1 }),
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || ('Request failed (' + res.status + ')'));
-    return data.event || null;
+    return data.events || [];
+  }
+  // Canvas-synced calendars mix real class sessions together with
+  // assignment/quiz due-date markers, using Canvas's own verbose
+  // auto-generated titles — this strips the common wrapper patterns
+  // down to something cleaner, without needing manual per-course rules
+  // specific course-tag rules — each one moves that course's own
+  // label to the front of the assignment name and removes the raw
+  // Canvas tag. BIMM120's rule also strips any earlier "BIMM 120"
+  // that already appears in the raw title, so it doesn't end up
+  // duplicated once the clean prefix is added back on.
+  const COURSE_TAG_RULES = [
+    { tag: '[BIPN103_FA26_002]', prefix: 'BIPN 103', stripPriorLabel: null },
+    { tag: '[BICD110_FA26_001]', prefix: 'BICD 110', stripPriorLabel: null },
+    { tag: '[BIMM120_FA26_001]', prefix: 'BIMM 120', stripPriorLabel: 'BIMM 120' },
+  ];
+  // events that should never show up in Due Soon at all, no matter
+  // which linked calendar they come from — exact title match
+  const EXCLUDED_EVENT_TITLES = [
+    'Discussion Section - BICD 110 - Cell Biology - Kiger [FA26] [BICD110_FA26_001]',
+  ];
+  function cleanEventName(name){
+    if (!name) return name;
+    let result = name;
+    for (const rule of COURSE_TAG_RULES){
+      if (result.includes(rule.tag)){
+        result = result.split(rule.tag).join(''); // remove the raw tag
+        if (rule.stripPriorLabel){
+          const escaped = rule.stripPriorLabel.replace(/[.*+?^${}()|[\]\\]/g, '\$&');
+          result = result.replace(new RegExp(escaped, 'gi'), '');
+        }
+        result = (rule.prefix + ' ' + result).trim();
+        break; // a title should only ever match one course
+      }
+    }
+    return result
+      .replace(/^\[.*?\]\s*/, '')
+      .replace(/\s*\[.*?\]\s*$/, '')
+      .replace(/^Assignment:\s*/i, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+  // sets a topbar value's text and, if it's too long for the fixed-
+  // width box it sits in, turns on the auto-scrolling marquee — pausing
+  // at the start, scrolling to the end, pausing there, then scrolling
+  // back. Scroll speed stays roughly constant regardless of length,
+  // since duration scales with how far it actually has to travel.
+  function setTopbarValue(el, text){
+    if (!el) return;
+    el.textContent = text;
+    el.classList.remove('marquee');
+    el.style.removeProperty('--scroll-distance');
+    el.style.removeProperty('--marquee-dur');
+    requestAnimationFrame(() => {
+      const container = el.parentElement;
+      if (!container) return;
+      const overflow = el.scrollWidth - container.clientWidth;
+      if (overflow > 2){
+        el.style.setProperty('--scroll-distance', (-overflow) + 'px');
+        el.style.setProperty('--marquee-dur', Math.max(4, overflow / 25) + 's');
+        el.classList.add('marquee');
+      }
+    });
   }
   function formatEventRange(ev){
     if (!ev) return '—';
@@ -1329,25 +1418,64 @@
     const endTime = end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     return `${name} ${startTime}–${endTime}`;
   }
+  // all upcoming Canvas-style due-date items collected from linked
+  // calendars — both the Class calendar's split-off due-markers, and
+  // the dedicated Due Soon calendar — updateDueSoon() below merges
+  // these with your To-do tasks and shows everything due on whichever
+  // day is nearest
+  let canvasDueItems = [];
+
   // returns an array of per-calendar error messages (empty if every
   // linked calendar synced fine) — each calendar is still fetched
-  // independently so one failing doesn't block the other from updating,
-  // but the caller can now actually see what went wrong, unlike before
+  // independently so one failing doesn't block the others from
+  // updating, but the caller can now actually see what went wrong
   async function refreshScheduleCalendars(){
     const cfg = loadCalConfig();
     const errors = [];
+    let classDueItems = [];
+    let dedicatedDueItems = [];
+
     if (cfg.classIcsUrl){
       try {
-        const ev = await fetchNextIcsEvent(cfg.classIcsUrl);
-        const el = document.getElementById('topbar-next-class');
-        if (el) el.textContent = formatEventRange(ev);
+        // fetch a batch of upcoming occurrences, not just the nearest
+        // one — Canvas-synced calendars mix real class sessions
+        // together with assignment/quiz due-date markers, and we need
+        // enough of them to find every same-day one of each kind
+        const events = await fetchUpcomingIcsEvents(cfg.classIcsUrl, 30);
+        let classPool = [];
+        events.forEach(ev => {
+          const durationMin = (new Date(ev.end) - new Date(ev.start)) / 60000;
+          // a due-date marker is essentially instantaneous, OR an
+          // all-day event (Canvas represents a "due this day, no
+          // specific time" assignment as all-day, which otherwise
+          // spans a full 24 hours and would look like a real class) —
+          // a real class session has an actual, non-all-day time block
+          if (durationMin <= 5 || ev.allDay){
+            classDueItems.push(ev);
+          } else {
+            classPool.push({ date: new Date(ev.start), text: formatEventRange({ ...ev, summary: cleanEventName(ev.summary) }) });
+          }
+        });
+        renderSameDayList(document.getElementById('topbar-next-class-list'), classPool);
       } catch(e){ errors.push('Class: ' + e.message); }
     }
+
+    if (cfg.dueIcsUrl){
+      try {
+        dedicatedDueItems = await fetchUpcomingIcsEvents(cfg.dueIcsUrl, 30);
+      } catch(e){ errors.push('Due Soon: ' + e.message); }
+    }
+
+    canvasDueItems = classDueItems.concat(dedicatedDueItems);
+    updateDueSoon();
+
     if (cfg.shiftIcsUrl){
       try {
-        const ev = await fetchNextIcsEvent(cfg.shiftIcsUrl);
-        const el = document.getElementById('topbar-next-shift');
-        if (el) el.textContent = formatEventRange(ev);
+        // same "batch + group by nearest day" treatment as Class,
+        // rather than just grabbing the single soonest shift
+        const events = await fetchUpcomingIcsEvents(cfg.shiftIcsUrl, 20);
+        const shiftPool = events.map(ev => ({ date: new Date(ev.start), text: formatEventRange(ev) }));
+        renderSameDayList(document.getElementById('topbar-next-shift-list'), shiftPool);
       } catch(e){ errors.push('Shift: ' + e.message); }
     }
     return errors;
@@ -1360,6 +1488,7 @@
       const cfg = loadCalConfig();
       document.getElementById('cal-class-ics').value = cfg.classIcsUrl || '';
       document.getElementById('cal-shift-ics').value = cfg.shiftIcsUrl || '';
+      document.getElementById('cal-due-ics').value = cfg.dueIcsUrl || '';
       setCalStatus('');
       overlay.classList.add('open');
       buildModalFrame('cal-modal', 'cal-modal-frame');
@@ -1370,8 +1499,9 @@
       const cfg = {
         classIcsUrl: document.getElementById('cal-class-ics').value.trim(),
         shiftIcsUrl: document.getElementById('cal-shift-ics').value.trim(),
+        dueIcsUrl: document.getElementById('cal-due-ics').value.trim(),
       };
-      if (!cfg.classIcsUrl && !cfg.shiftIcsUrl){
+      if (!cfg.classIcsUrl && !cfg.shiftIcsUrl && !cfg.dueIcsUrl){
         setCalStatus('Add at least one calendar\'s ICS URL.', true);
         return;
       }
@@ -1405,32 +1535,83 @@
   // the To-do page's datetime-local input; older tasks saved before
   // that change only have a plain date ("2026-09-18") and fall back to
   // showing just the date since there's no real time to show
+  // builds one due-soon row: a fixed-width, marquee-capable span,
+  // appended into the stacked list container
+  // builds one row: a fixed-width, marquee-capable span, appended
+  // into a stacked list container — shared by Next Class, Next Shift,
+  // and Due Soon
+  function addTopbarRow(container, text){
+    const row = document.createElement('span');
+    row.className = 'topbar-subvalue';
+    const inner = document.createElement('span');
+    inner.className = 'topbar-subvalue-inner';
+    row.appendChild(inner);
+    container.appendChild(row);
+    setTopbarValue(inner, text);
+  }
+  // given a pool of { date, text } items (already filtered to
+  // upcoming), finds whichever calendar day is nearest and renders
+  // EVERY item from that same day, in chronological order — not just
+  // the single soonest one. Shared logic behind Next Class, Next
+  // Shift, and Due Soon all "grouping by nearest day" the same way.
+  function renderSameDayList(container, pool){
+    if (!container) return;
+    container.innerHTML = '';
+    if (!pool.length){
+      addTopbarRow(container, '—');
+      return;
+    }
+    pool.sort((a, b) => a.date - b.date);
+    const nearestDate = pool[0].date;
+    const sameDay = pool.filter(item =>
+      item.date.getFullYear() === nearestDate.getFullYear() &&
+      item.date.getMonth() === nearestDate.getMonth() &&
+      item.date.getDate() === nearestDate.getDate()
+    );
+    sameDay.forEach(item => addTopbarRow(container, item.text));
+  }
   function updateDueSoon(){
-    const el = document.getElementById('topbar-due-soon');
-    if (!el) return;
+    const container = document.getElementById('topbar-due-soon-list');
+    if (!container) return;
     let tasks = [];
     try {
       const raw = localStorage.getItem('alltodo-nodes');
       tasks = raw ? JSON.parse(raw) : [];
     } catch(e){}
     const now = Date.now();
-    let nearest = null;
+    let pool = [];
     tasks.forEach(t => {
       if (!t.dueDate) return;
       const hasTime = t.dueDate.includes('T');
       const d = hasTime ? new Date(t.dueDate) : new Date(t.dueDate + 'T23:59:59');
       const due = d.getTime();
-      if (!isNaN(due) && due >= now && (!nearest || due < nearest.due)){
-        nearest = { name: t.name, due, hasTime, date: d };
+      if (!isNaN(due) && due >= now){
+        pool.push({ date: d, text: t.name + ' ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) });
       }
     });
-    if (!nearest){
-      el.textContent = '—';
-    } else if (nearest.hasTime){
-      el.textContent = nearest.name + ' ' + nearest.date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    } else {
-      el.textContent = nearest.name + ' ' + nearest.date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
+    // also fold in every upcoming Canvas-style due-date item collected
+    // from your linked calendars
+    canvasDueItems.forEach(ev => {
+      if (EXCLUDED_EVENT_TITLES.includes((ev.summary || '').trim())) return;
+      let d;
+      if (ev.allDay){
+        // an all-day marker means Canvas has a due DATE but no specific
+        // time — assume 11:59 PM, same as a To-do task with no time.
+        // getUTC* here (not local get*) because the all-day date was
+        // deliberately parsed as UTC midnight to mean "just this
+        // calendar date," so those are the true year/month/day
+        const raw = new Date(ev.start);
+        d = new Date(raw.getUTCFullYear(), raw.getUTCMonth(), raw.getUTCDate(), 23, 59, 0);
+      } else {
+        d = new Date(ev.start);
+      }
+      const due = d.getTime();
+      if (!isNaN(due) && due >= now){
+        const name = cleanEventName(ev.summary);
+        pool.push({ date: d, text: name + ' ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) });
+      }
+    });
+    renderSameDayList(container, pool);
   }
   updateClock();
   setInterval(updateClock, 1000*15);

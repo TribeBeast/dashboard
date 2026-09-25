@@ -481,16 +481,12 @@
     <svg id="cal-modal-frame"></svg>
     <h2>Link your calendars</h2>
     <div class="field">
-      <label for="cal-api-key">Google API key</label>
-      <input id="cal-api-key" type="password" placeholder="AIza...">
+      <label for="cal-class-ics">Class calendar ICS URL</label>
+      <input id="cal-class-ics" type="text" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics">
     </div>
     <div class="field">
-      <label for="cal-class-id">Class calendar ID</label>
-      <input id="cal-class-id" type="text" placeholder="you@gmail.com or ...@group.calendar.google.com">
-    </div>
-    <div class="field">
-      <label for="cal-shift-id">Shift calendar ID</label>
-      <input id="cal-shift-id" type="text" placeholder="you@gmail.com or ...@group.calendar.google.com">
+      <label for="cal-shift-ics">Shift calendar ICS URL</label>
+      <input id="cal-shift-ics" type="text" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics">
     </div>
     <div class="modal-actions">
       <button id="cal-modal-cancel">Cancel</button>
@@ -1292,11 +1288,12 @@
   // one Google API key, two separate calendar IDs — one for classes,
   // one for shifts. Stored under a dedicated key so it syncs across
   // devices the same way everything else on the site does.
+  const SCHEDULE_WORKER_URL = 'https://site-sync.carlosaq0501.workers.dev/'; // same Worker as sync.js
   function loadCalConfig(){
     try {
       const raw = localStorage.getItem('schedule-calendars-config');
-      return raw ? JSON.parse(raw) : { apiKey: '', classCalendarId: '', shiftCalendarId: '' };
-    } catch(e){ return { apiKey: '', classCalendarId: '', shiftCalendarId: '' }; }
+      return raw ? JSON.parse(raw) : { classIcsUrl: '', shiftIcsUrl: '' };
+    } catch(e){ return { classIcsUrl: '', shiftIcsUrl: '' }; }
   }
   function saveCalConfig(cfg){
     SiteSync.save('schedule-calendars-config', cfg);
@@ -1307,41 +1304,43 @@
     el.textContent = msg;
     el.style.color = isError ? '#E4483C' : '';
   }
-  async function fetchNextEvent(apiKey, calendarId){
-    const timeMin = new Date().toISOString();
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`
-      + `?key=${encodeURIComponent(apiKey)}&timeMin=${encodeURIComponent(timeMin)}`
-      + `&maxResults=1&orderBy=startTime&singleEvents=true`;
-    const res = await fetch(url);
+  // browsers can't fetch most ICS URLs directly (CORS), so this asks
+  // the Worker to fetch and parse it server-side instead — same Worker
+  // that already handles sync and the password check
+  async function fetchNextIcsEvent(icsUrl){
+    const res = await fetch(SCHEDULE_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'fetchIcs', url: icsUrl }),
+    });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || ('Request failed (' + res.status + ')'));
-    return (data.items || [])[0] || null;
+    if (!res.ok || data.error) throw new Error(data.error || ('Request failed (' + res.status + ')'));
+    return data.event || null;
   }
   function formatEventRange(ev){
     if (!ev) return '—';
     const name = ev.summary || '(untitled)';
-    if (!ev.start.dateTime){
+    if (ev.allDay){
       return name; // all-day event — no meaningful time range to show
     }
-    const start = new Date(ev.start.dateTime);
-    const end = new Date(ev.end.dateTime || ev.end.date);
+    const start = new Date(ev.start);
+    const end = new Date(ev.end);
     const startTime = start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     const endTime = end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     return `${name} ${startTime}–${endTime}`;
   }
   async function refreshScheduleCalendars(){
     const cfg = loadCalConfig();
-    if (!cfg.apiKey) return;
-    if (cfg.classCalendarId){
+    if (cfg.classIcsUrl){
       try {
-        const ev = await fetchNextEvent(cfg.apiKey, cfg.classCalendarId);
+        const ev = await fetchNextIcsEvent(cfg.classIcsUrl);
         const el = document.getElementById('topbar-next-class');
         if (el) el.textContent = formatEventRange(ev);
       } catch(e){ /* leave the existing value showing rather than blank it out */ }
     }
-    if (cfg.shiftCalendarId){
+    if (cfg.shiftIcsUrl){
       try {
-        const ev = await fetchNextEvent(cfg.apiKey, cfg.shiftCalendarId);
+        const ev = await fetchNextIcsEvent(cfg.shiftIcsUrl);
         const el = document.getElementById('topbar-next-shift');
         if (el) el.textContent = formatEventRange(ev);
       } catch(e){}
@@ -1353,9 +1352,8 @@
     if (!overlay || !btn) return;
     btn.addEventListener('click', () => {
       const cfg = loadCalConfig();
-      document.getElementById('cal-api-key').value = cfg.apiKey || '';
-      document.getElementById('cal-class-id').value = cfg.classCalendarId || '';
-      document.getElementById('cal-shift-id').value = cfg.shiftCalendarId || '';
+      document.getElementById('cal-class-ics').value = cfg.classIcsUrl || '';
+      document.getElementById('cal-shift-ics').value = cfg.shiftIcsUrl || '';
       setCalStatus('');
       overlay.classList.add('open');
       buildModalFrame('cal-modal', 'cal-modal-frame');
@@ -1364,12 +1362,11 @@
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
     document.getElementById('cal-modal-save').addEventListener('click', async () => {
       const cfg = {
-        apiKey: document.getElementById('cal-api-key').value.trim(),
-        classCalendarId: document.getElementById('cal-class-id').value.trim(),
-        shiftCalendarId: document.getElementById('cal-shift-id').value.trim(),
+        classIcsUrl: document.getElementById('cal-class-ics').value.trim(),
+        shiftIcsUrl: document.getElementById('cal-shift-ics').value.trim(),
       };
-      if (!cfg.apiKey || (!cfg.classCalendarId && !cfg.shiftCalendarId)){
-        setCalStatus('Add your API key and at least one calendar ID.', true);
+      if (!cfg.classIcsUrl && !cfg.shiftIcsUrl){
+        setCalStatus('Add at least one calendar\'s ICS URL.', true);
         return;
       }
       saveCalConfig(cfg);

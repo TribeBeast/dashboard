@@ -1311,22 +1311,28 @@
     const endTime = end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     return `${name} ${startTime}–${endTime}`;
   }
+  // returns an array of per-calendar error messages (empty if every
+  // linked calendar synced fine) — each calendar is still fetched
+  // independently so one failing doesn't block the other from updating,
+  // but the caller can now actually see what went wrong, unlike before
   async function refreshScheduleCalendars(){
     const cfg = loadCalConfig();
+    const errors = [];
     if (cfg.classIcsUrl){
       try {
         const ev = await fetchNextIcsEvent(cfg.classIcsUrl);
         const el = document.getElementById('topbar-next-class');
         if (el) el.textContent = formatEventRange(ev);
-      } catch(e){ /* leave the existing value showing rather than blank it out */ }
+      } catch(e){ errors.push('Class: ' + e.message); }
     }
     if (cfg.shiftIcsUrl){
       try {
         const ev = await fetchNextIcsEvent(cfg.shiftIcsUrl);
         const el = document.getElementById('topbar-next-shift');
         if (el) el.textContent = formatEventRange(ev);
-      } catch(e){}
+      } catch(e){ errors.push('Shift: ' + e.message); }
     }
+    return errors;
   }
   function initCalSettingsUI(){
     const overlay = document.getElementById('cal-modal-overlay');
@@ -1353,11 +1359,11 @@
       }
       saveCalConfig(cfg);
       setCalStatus('Syncing…');
-      try {
-        await refreshScheduleCalendars();
+      const errors = await refreshScheduleCalendars();
+      if (errors.length){
+        setCalStatus(errors.join(' · '), true);
+      } else {
         setCalStatus('Synced.');
-      } catch(e){
-        setCalStatus('Sync failed: ' + e.message, true);
       }
     });
   }

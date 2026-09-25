@@ -2075,9 +2075,14 @@
   // linked calendar synced fine) — each calendar is still fetched
   // independently so one failing doesn't block the others from
   // updating, but the caller can now actually see what went wrong
+  // returns { errors, counts } — counts is the RAW number of upcoming
+  // events the Worker actually found in each linked calendar (before
+  // any filtering/classification), so a "synced but nothing shows up"
+  // situation is distinguishable from "the feed itself has 0 events"
   async function refreshScheduleCalendars(){
     const cfg = loadCalConfig();
     const errors = [];
+    const counts = {};
     let classDueItems = [];
     let dedicatedDueItems = [];
 
@@ -2092,6 +2097,7 @@
         // together with assignment/quiz due-date markers, and we need
         // enough of them to find every same-day one of each kind
         const events = await fetchUpcomingIcsEvents(cfg.classIcsUrl, 30);
+        counts.class = events.length;
         events.forEach(ev => {
           const durationMin = (new Date(ev.end) - new Date(ev.start)) / 60000;
           // a due-date marker is essentially instantaneous, OR an
@@ -2112,6 +2118,7 @@
     if (cfg.dueIcsUrl){
       try {
         dedicatedDueItems = await fetchUpcomingIcsEvents(cfg.dueIcsUrl, 30);
+        counts.due = dedicatedDueItems.length;
       } catch(e){ errors.push('Due Soon: ' + e.message); }
     }
 
@@ -2130,11 +2137,12 @@
         // same "batch + group by nearest day" treatment as Class,
         // rather than just grabbing the single soonest shift
         const events = await fetchUpcomingIcsEvents(cfg.shiftIcsUrl, 20);
+        counts.shift = events.length;
         shiftPool = events.map(ev => ({ date: new Date(ev.start), text: formatEventRange(ev) }));
       } catch(e){ errors.push('Shift: ' + e.message); }
     }
     renderSameDayList(document.getElementById('topbar-next-shift-list'), shiftPool);
-    return errors;
+    return { errors, counts };
   }
   function initCalSettingsUI(){
     const overlay = document.getElementById('cal-modal-overlay');
@@ -2163,11 +2171,18 @@
       }
       saveCalConfig(cfg);
       setCalStatus('Syncing…');
-      const errors = await refreshScheduleCalendars();
+      const { errors, counts } = await refreshScheduleCalendars();
       if (errors.length){
         setCalStatus(errors.join(' · '), true);
       } else {
-        setCalStatus('Synced.');
+        // shows exactly how many upcoming events each linked calendar's
+        // feed actually contained — makes a "synced but nothing shows
+        // up" situation distinguishable from "the feed itself is empty"
+        const parts = [];
+        if (counts.class !== undefined) parts.push('Class: ' + counts.class);
+        if (counts.shift !== undefined) parts.push('Shift: ' + counts.shift);
+        if (counts.due !== undefined) parts.push('Due Soon: ' + counts.due);
+        setCalStatus('Synced. ' + parts.join(', ') + ' upcoming event(s) found.');
       }
     });
   }

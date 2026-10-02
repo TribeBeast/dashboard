@@ -1375,12 +1375,25 @@
     { tag: '[BIPN103_FA26_002]', prefix: 'BIPN 103', stripPriorLabel: null },
     { tag: '[BICD110_FA26_001]', prefix: 'BICD 110', stripPriorLabel: null },
     { tag: '[BIMM120_FA26_001]', prefix: 'BIMM 120', stripPriorLabel: 'BIMM 120' },
+    { tag: '[BIMM122_FA26_001]', prefix: 'BIMM 122', stripPriorLabel: null },
   ];
   // events that should never show up in Due Soon at all, no matter
   // which linked calendar they come from — exact title match
   const EXCLUDED_EVENT_TITLES = [
     'Discussion Section - BICD 110 - Cell Biology - Kiger [FA26] [BICD110_FA26_001]',
   ];
+  // broader than EXCLUDED_EVENT_TITLES above — anything whose title
+  // CONTAINS one of these (case-insensitive) is left out of Due Soon
+  // entirely, regardless of which course it belongs to
+  const EXCLUDED_EVENT_PATTERNS = [
+    'discussion section',
+  ];
+  function isExcludedEvent(summary){
+    const s = (summary || '').trim();
+    if (EXCLUDED_EVENT_TITLES.includes(s)) return true;
+    const lower = s.toLowerCase();
+    return EXCLUDED_EVENT_PATTERNS.some(p => lower.includes(p));
+  }
   function cleanEventName(name){
     if (!name) return name;
     let result = name;
@@ -1652,7 +1665,7 @@
     const now = Date.now();
     let pool = [];
     canvasDueItems.forEach(ev => {
-      if (EXCLUDED_EVENT_TITLES.includes((ev.summary || '').trim())) return;
+      if (isExcludedEvent(ev.summary)) return;
       let d;
       if (ev.allDay){
         // an all-day marker means Canvas has a due DATE but no specific

@@ -2148,7 +2148,7 @@
           if (durationMin <= 5 || ev.allDay){
             classDueItems.push(ev);
           } else {
-            classPoolAll.push({ date: new Date(ev.start), text: formatEventRange({ ...ev, summary: cleanEventName(ev.summary) }) });
+            classPoolAll.push({ date: new Date(ev.start), name: cleanEventName(ev.summary) });
           }
         });
       } catch(e){ errors.push('Class: ' + e.message); }
@@ -2179,7 +2179,7 @@
         // rather than just grabbing the single soonest shift
         const events = await fetchUpcomingIcsEvents(cfg.shiftIcsUrl, 20);
         counts.shift = events.length;
-        shiftPoolAll = events.map(ev => ({ date: new Date(ev.start), text: formatEventRange(ev) }));
+        shiftPoolAll = events.map(ev => ({ date: new Date(ev.start), name: cleanEventName(ev.summary) }));
       } catch(e){ errors.push('Shift: ' + e.message); }
     }
     updateNextShift();
@@ -2286,22 +2286,35 @@
       a.getMonth() === b.getMonth() &&
       a.getDate() === b.getDate();
   }
+  // the one shared format every widget row uses, no exceptions:
+  // "Abbreviated weekday, date, time - event"
+  function formatWidgetLine(date, name){
+    const weekdayDate = date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+    const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    return `${weekdayDate}, ${time} - ${name}`;
+  }
   function renderSameDayList(container, pool){
     if (!container) return;
-    container.innerHTML = '';
+    let texts;
     if (!pool.length){
-      addTopbarRow(container, '—');
-      return;
+      texts = ['—'];
+    } else {
+      pool.sort((a, b) => a.date - b.date);
+      const nearestDate = pool[0].date;
+      const sameDay = pool.filter(item => isSameCalendarDay(item.date, nearestDate));
+      texts = sameDay.map(item => formatWidgetLine(item.date, item.name));
     }
-    pool.sort((a, b) => a.date - b.date);
-    const nearestDate = pool[0].date;
-    const sameDay = pool.filter(item => isSameCalendarDay(item.date, nearestDate));
-    // if the nearest day isn't today, lead with the date so it's clear
-    // at a glance these aren't happening today
-    const datePrefix = isSameCalendarDay(nearestDate, new Date())
-      ? ''
-      : nearestDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) + ' — ';
-    sameDay.forEach(item => addTopbarRow(container, datePrefix + item.text));
+    // skip rebuilding the DOM entirely if the content hasn't actually
+    // changed — this gets called every 15s just to re-check whether
+    // any event's time has passed, and tearing down + recreating every
+    // row's element on every single tick was resetting each one's
+    // mid-flight marquee animation back to frame zero, which is what
+    // made the scroll/fade look like it was snapping and choppy
+    const signature = texts.join('\u0001');
+    if (container.dataset.lastSignature === signature) return;
+    container.dataset.lastSignature = signature;
+    container.innerHTML = '';
+    texts.forEach(t => addTopbarRow(container, t));
   }
   // Due Soon is exclusively the dedicated Due Soon calendar you link —
   // no To-do tasks, no Class-calendar due-markers, nothing else mixed in
@@ -2327,7 +2340,7 @@
       const due = d.getTime();
       if (!isNaN(due) && due >= now){
         const name = cleanEventName(ev.summary);
-        pool.push({ date: d, text: name + ' ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) });
+        pool.push({ date: d, name });
       }
     });
     renderSameDayList(container, pool);

@@ -198,9 +198,12 @@
   /* pauses at the start, scrolls to the end, pauses there, then
      scrolls back and pauses at the start again before looping */
   @keyframes topbar-marquee{
-    0%, 12% { transform: translateX(0); }
-    45%, 58% { transform: translateX(var(--scroll-distance, 0px)); }
-    92%, 100% { transform: translateX(0); }
+    0%, 10% { transform: translateX(0); opacity: 1; }
+    50% { transform: translateX(var(--scroll-distance, 0px)); opacity: 1; }
+    65% { transform: translateX(var(--scroll-distance, 0px)); opacity: 1; }
+    70% { transform: translateX(var(--scroll-distance, 0px)); opacity: 0; }
+    70.5% { transform: translateX(0); opacity: 0; }
+    76%, 100% { transform: translateX(0); opacity: 1; }
   }
   @media (prefers-reduced-motion: reduce){
     .topbar-subvalue-inner.marquee{ animation: none; }
@@ -514,6 +517,10 @@
     <div class="field">
       <label for="cal-due-ics">Due Soon calendar ICS URL</label>
       <input id="cal-due-ics" type="text" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics">
+    </div>
+    <div class="field">
+      <label for="cal-device-account">Google account # on THIS device</label>
+      <input id="cal-device-account" type="text" placeholder="e.g. 0, 1, 2 — never synced, set per device">
     </div>
     <div class="modal-actions">
       <button id="cal-modal-cancel">Cancel</button>
@@ -1079,10 +1086,21 @@
   function easeInExpo(t){ return t <= 0 ? 0 : Math.pow(2, 10*t - 10); }
   function lerp(a,b,t){ return a + (b-a)*t; }
 
+  // rewrites a Google multi-account URL's /u/N/ segment to use THIS
+  // device's own configured account index — deliberately read from
+  // plain localStorage, never through SiteSync, since the whole point
+  // is that the right account number is different on every device
+  function applyDeviceGoogleAccount(url){
+    let accountIndex = null;
+    try { accountIndex = localStorage.getItem('device-google-account'); } catch(e){}
+    if (accountIndex === null || accountIndex === '') return url;
+    if (!/\/u\/\d+\//.test(url)) return url;
+    return url.replace(/\/u\/\d+\//, '/u/' + accountIndex + '/');
+  }
   function resolveUrl(url){
-    if (/^https?:\/\//i.test(url)) return url;
+    if (/^https?:\/\//i.test(url)) return applyDeviceGoogleAccount(url);
     if (/\.html?(\?|#|$)/i.test(url)) return url; // relative page on this site
-    return 'https://' + url;
+    return applyDeviceGoogleAccount('https://' + url);
   }
 
   function warpTo(n){
@@ -1397,7 +1415,7 @@
       const overflow = el.scrollWidth - container.clientWidth;
       if (overflow > 2){
         el.style.setProperty('--scroll-distance', (-overflow) + 'px');
-        el.style.setProperty('--marquee-dur', Math.max(4, overflow / 25) + 's');
+        el.style.setProperty('--marquee-dur', Math.max(9, overflow / 8) + 's');
         el.classList.add('marquee');
       }
     });
@@ -1420,11 +1438,23 @@
   // these with your To-do tasks and shows everything due on whichever
   // day is nearest
   let canvasDueItems = [];
+  // raw, unfiltered-by-time pools — refreshed only when the calendars
+  // actually re-sync (every 10 min), but re-FILTERED by the current
+  // time on every clock tick via updateNextClass()/updateNextShift()
+  // below, so a class or shift that just started doesn't linger on
+  // screen until the next sync happens to catch up
+  let classPoolAll = [];
+  let shiftPoolAll = [];
 
-  // returns an array of per-calendar error messages (empty if every
-  // linked calendar synced fine) — each calendar is still fetched
-  // independently so one failing doesn't block the others from
-  // updating, but the caller can now actually see what went wrong
+  function updateNextClass(){
+    const now = Date.now();
+    renderSameDayList(document.getElementById('topbar-next-class-list'), classPoolAll.filter(item => item.date.getTime() >= now));
+  }
+  function updateNextShift(){
+    const now = Date.now();
+    renderSameDayList(document.getElementById('topbar-next-shift-list'), shiftPoolAll.filter(item => item.date.getTime() >= now));
+  }
+
   // returns { errors, counts } — counts is the RAW number of upcoming
   // events the Worker actually found in each linked calendar (before
   // any filtering/classification), so a "synced but nothing shows up"
@@ -1436,10 +1466,7 @@
     let classDueItems = [];
     let dedicatedDueItems = [];
 
-    // renders unconditionally, same as Due Soon does — an unlinked
-    // or empty calendar shows the "—" placeholder rather than staying
-    // completely blank while everything else on the page has loaded
-    let classPool = [];
+    classPoolAll = [];
     if (cfg.classIcsUrl){
       try {
         // fetch a batch of upcoming occurrences, not just the nearest
@@ -1458,12 +1485,15 @@
           if (durationMin <= 5 || ev.allDay){
             classDueItems.push(ev);
           } else {
-            classPool.push({ date: new Date(ev.start), text: formatEventRange({ ...ev, summary: cleanEventName(ev.summary) }) });
+            classPoolAll.push({ date: new Date(ev.start), text: formatEventRange({ ...ev, summary: cleanEventName(ev.summary) }) });
           }
         });
       } catch(e){ errors.push('Class: ' + e.message); }
     }
-    renderSameDayList(document.getElementById('topbar-next-class-list'), classPool);
+    // renders unconditionally, same as Due Soon does — an unlinked
+    // or empty calendar shows the "—" placeholder rather than staying
+    // completely blank while everything else on the page has loaded
+    updateNextClass();
 
     if (cfg.dueIcsUrl){
       try {
@@ -1479,19 +1509,17 @@
     canvasDueItems = dedicatedDueItems;
     updateDueSoon();
 
-    // same "always render, empty pool shows the placeholder" fix as
-    // Next Class above
-    let shiftPool = [];
+    shiftPoolAll = [];
     if (cfg.shiftIcsUrl){
       try {
         // same "batch + group by nearest day" treatment as Class,
         // rather than just grabbing the single soonest shift
         const events = await fetchUpcomingIcsEvents(cfg.shiftIcsUrl, 20);
         counts.shift = events.length;
-        shiftPool = events.map(ev => ({ date: new Date(ev.start), text: formatEventRange(ev) }));
+        shiftPoolAll = events.map(ev => ({ date: new Date(ev.start), text: formatEventRange(ev) }));
       } catch(e){ errors.push('Shift: ' + e.message); }
     }
-    renderSameDayList(document.getElementById('topbar-next-shift-list'), shiftPool);
+    updateNextShift();
     return { errors, counts };
   }
   function initCalSettingsUI(){
@@ -1503,6 +1531,12 @@
       document.getElementById('cal-class-ics').value = cfg.classIcsUrl || '';
       document.getElementById('cal-shift-ics').value = cfg.shiftIcsUrl || '';
       document.getElementById('cal-due-ics').value = cfg.dueIcsUrl || '';
+      // read straight from plain localStorage, never through
+      // SiteSync/loadCalConfig — this one value is deliberately
+      // device-local and must never get pulled in from another device
+      try {
+        document.getElementById('cal-device-account').value = localStorage.getItem('device-google-account') || '';
+      } catch(e){}
       setCalStatus('');
       overlay.classList.add('open');
       buildModalFrame('cal-modal', 'cal-modal-frame');
@@ -1510,13 +1544,20 @@
     document.getElementById('cal-modal-cancel').addEventListener('click', () => overlay.classList.remove('open'));
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
     document.getElementById('cal-modal-save').addEventListener('click', async () => {
+      // saved immediately and unconditionally, separate from the
+      // calendar-URL validation below — this is plain localStorage,
+      // never SiteSync, so it only ever affects this one device
+      try {
+        localStorage.setItem('device-google-account', document.getElementById('cal-device-account').value.trim());
+      } catch(e){}
+
       const cfg = {
         classIcsUrl: document.getElementById('cal-class-ics').value.trim(),
         shiftIcsUrl: document.getElementById('cal-shift-ics').value.trim(),
         dueIcsUrl: document.getElementById('cal-due-ics').value.trim(),
       };
       if (!cfg.classIcsUrl && !cfg.shiftIcsUrl && !cfg.dueIcsUrl){
-        setCalStatus('Add at least one calendar\'s ICS URL.', true);
+        setCalStatus('Saved. Add a calendar\'s ICS URL to sync one.');
         return;
       }
       saveCalConfig(cfg);
@@ -1546,6 +1587,8 @@
     document.getElementById('topbar-clock-date').textContent =
       now.toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'});
     updateDueSoon();
+    updateNextClass();
+    updateNextShift();
   }
   // "Due Soon" reads the same To-do task data the To-do page itself
   // uses (alltodo-nodes), so it works from any page without needing
@@ -1575,6 +1618,11 @@
   // EVERY item from that same day, in chronological order — not just
   // the single soonest one. Shared logic behind Next Class, Next
   // Shift, and Due Soon all "grouping by nearest day" the same way.
+  function isSameCalendarDay(a, b){
+    return a.getFullYear() === b.getFullYear() &&
+      a.getMonth() === b.getMonth() &&
+      a.getDate() === b.getDate();
+  }
   function renderSameDayList(container, pool){
     if (!container) return;
     container.innerHTML = '';
@@ -1584,12 +1632,13 @@
     }
     pool.sort((a, b) => a.date - b.date);
     const nearestDate = pool[0].date;
-    const sameDay = pool.filter(item =>
-      item.date.getFullYear() === nearestDate.getFullYear() &&
-      item.date.getMonth() === nearestDate.getMonth() &&
-      item.date.getDate() === nearestDate.getDate()
-    );
-    sameDay.forEach(item => addTopbarRow(container, item.text));
+    const sameDay = pool.filter(item => isSameCalendarDay(item.date, nearestDate));
+    // if the nearest day isn't today, lead with the date so it's clear
+    // at a glance these aren't happening today
+    const datePrefix = isSameCalendarDay(nearestDate, new Date())
+      ? ''
+      : nearestDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) + ' — ';
+    sameDay.forEach(item => addTopbarRow(container, datePrefix + item.text));
   }
   // Due Soon is exclusively the dedicated Due Soon calendar you link —
   // no To-do tasks, no Class-calendar due-markers, nothing else mixed in
@@ -1744,6 +1793,16 @@
     initCalSettingsUI();
     refreshScheduleCalendars();
     setInterval(refreshScheduleCalendars, 10 * 60 * 1000);
+    // schedule-calendars-config was write-only to the cloud before —
+    // saved fine, but never actually pulled back down on a different
+    // device or a cleared browser, which would make Class/Shift look
+    // unconfigured there even though they'd been set up elsewhere.
+    // checkCloud() already writes any fresher value to localStorage
+    // itself before calling back, so this just needs to re-sync once
+    // that's happened.
+    SiteSync.checkCloud('schedule-calendars-config', true, (fresher) => {
+      if (fresher) refreshScheduleCalendars();
+    });
   })();
 })();
 </script>

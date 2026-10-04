@@ -1773,67 +1773,110 @@
   // events the Worker actually found in each linked calendar (before
   // any filtering/classification), so a "synced but nothing shows up"
   // situation is distinguishable from "the feed itself has 0 events"
-  async function refreshScheduleCalendars(){
+  // a short-lived, LOCAL (not SiteSync'd) cache of the fetched
+  // results — this is a page-navigation performance optimization, not
+  // cross-device data, so plain localStorage is the right tool here.
+  // Navigating between pages on the same device reuses it instead of
+  // re-fetching every single calendar again on every page load; the
+  // periodic 10-minute refresh and an explicit Save & Sync both always
+  // bypass it and force a real fetch.
+  const SCHEDULE_CACHE_KEY = 'schedule-calendars-cache';
+  const SCHEDULE_CACHE_MAX_AGE = 10 * 60 * 1000; // matches the periodic refresh interval
+  function loadScheduleCache(){
+    try {
+      const raw = localStorage.getItem(SCHEDULE_CACHE_KEY);
+      if (!raw) return null;
+      const cached = JSON.parse(raw);
+      if (!cached.fetchedAt || Date.now() - cached.fetchedAt > SCHEDULE_CACHE_MAX_AGE) return null;
+      return cached;
+    } catch(e){ return null; }
+  }
+  function saveScheduleCache(data){
+    try { localStorage.setItem(SCHEDULE_CACHE_KEY, JSON.stringify({ ...data, fetchedAt: Date.now() })); }
+    catch(e){}
+  }
+
+  // returns { errors, counts } — counts is the RAW number of upcoming
+  // events the Worker actually found in each linked calendar (before
+  // any filtering/classification), so a "synced but nothing shows up"
+  // situation is distinguishable from "the feed itself has 0 events".
+  // Pass forceFetch=true to always hit the network and skip the cache
+  // (used by the periodic refresh and the Save & Sync button).
+  async function refreshScheduleCalendars(forceFetch){
+    if (!forceFetch){
+      const cached = loadScheduleCache();
+      if (cached){
+        classPoolAll = (cached.classPoolAll || []).map(i => ({ date: new Date(i.date), name: i.name }));
+        shiftPoolAll = (cached.shiftPoolAll || []).map(i => ({ date: new Date(i.date), name: i.name }));
+        canvasDueItems = cached.canvasDueItems || [];
+        updateNextClass();
+        updateDueSoon();
+        updateNextShift();
+        return { errors: [], counts: cached.counts || {} };
+      }
+    }
+
     const cfg = loadCalConfig();
     const errors = [];
     const counts = {};
+    let newClassPool = [];
+    let newShiftPool = [];
     let classDueItems = [];
     let dedicatedDueItems = [];
 
-    classPoolAll = [];
-    if (cfg.classIcsUrl){
-      try {
-        // fetch a batch of upcoming occurrences, not just the nearest
-        // one — Canvas-synced calendars mix real class sessions
-        // together with assignment/quiz due-date markers, and we need
-        // enough of them to find every same-day one of each kind
-        const events = await fetchUpcomingIcsEvents(cfg.classIcsUrl, 30);
-        counts.class = events.length;
-        events.forEach(ev => {
-          const durationMin = (new Date(ev.end) - new Date(ev.start)) / 60000;
-          // a due-date marker is essentially instantaneous, OR an
-          // all-day event (Canvas represents a "due this day, no
-          // specific time" assignment as all-day, which otherwise
-          // spans a full 24 hours and would look like a real class) —
-          // a real class session has an actual, non-all-day time block
-          if (durationMin <= 5 || ev.allDay){
-            classDueItems.push(ev);
-          } else {
-            classPoolAll.push({ date: new Date(ev.start), name: cleanEventName(ev.summary) });
-          }
-        });
-      } catch(e){ errors.push('Class: ' + e.message); }
-    }
-    // renders unconditionally, same as Due Soon does — an unlinked
-    // or empty calendar shows the "—" placeholder rather than staying
-    // completely blank while everything else on the page has loaded
-    updateNextClass();
+    // all three calendars are fetched CONCURRENTLY rather than one
+    // after another, and none of the widgets render until every fetch
+    // has settled — so they all populate on screen at the same moment
+    // instead of popping in one at a time as each happens to finish
+    const classPromise = cfg.classIcsUrl
+      ? fetchUpcomingIcsEvents(cfg.classIcsUrl, 30).then(events => {
+          counts.class = events.length;
+          events.forEach(ev => {
+            const durationMin = (new Date(ev.end) - new Date(ev.start)) / 60000;
+            // a due-date marker is essentially instantaneous, OR an
+            // all-day event (Canvas represents a "due this day, no
+            // specific time" assignment as all-day, which otherwise
+            // spans a full 24 hours and would look like a real class) —
+            // a real class session has an actual, non-all-day time block
+            if (durationMin <= 5 || ev.allDay){
+              classDueItems.push(ev);
+            } else {
+              newClassPool.push({ date: new Date(ev.start), name: cleanEventName(ev.summary) });
+            }
+          });
+        }).catch(e => { errors.push('Class: ' + e.message); })
+      : Promise.resolve();
 
-    if (cfg.dueIcsUrl){
-      try {
-        dedicatedDueItems = await fetchUpcomingIcsEvents(cfg.dueIcsUrl, 30);
-        counts.due = dedicatedDueItems.length;
-      } catch(e){ errors.push('Due Soon: ' + e.message); }
-    }
+    const duePromise = cfg.dueIcsUrl
+      ? fetchUpcomingIcsEvents(cfg.dueIcsUrl, 30).then(events => {
+          dedicatedDueItems = events;
+          counts.due = events.length;
+        }).catch(e => { errors.push('Due Soon: ' + e.message); })
+      : Promise.resolve();
 
-    // Due Soon uses ONLY the dedicated Due Soon calendar now — the
-    // Class calendar's due-markers (classDueItems) are still split off
-    // so they don't get mistaken for real class sessions in Next
-    // Class, but they no longer feed into Due Soon
+    const shiftPromise = cfg.shiftIcsUrl
+      ? fetchUpcomingIcsEvents(cfg.shiftIcsUrl, 20).then(events => {
+          counts.shift = events.length;
+          newShiftPool = events.map(ev => ({ date: new Date(ev.start), name: cleanEventName(ev.summary) }));
+        }).catch(e => { errors.push('Shift: ' + e.message); })
+      : Promise.resolve();
+
+    await Promise.all([classPromise, duePromise, shiftPromise]);
+
+    classPoolAll = newClassPool;
+    shiftPoolAll = newShiftPool;
+    // Due Soon uses ONLY the dedicated Due Soon calendar — the Class
+    // calendar's due-markers (classDueItems) are still split off so
+    // they don't get mistaken for real class sessions in Next Class,
+    // but they no longer feed into Due Soon
     canvasDueItems = dedicatedDueItems;
-    updateDueSoon();
 
-    shiftPoolAll = [];
-    if (cfg.shiftIcsUrl){
-      try {
-        // same "batch + group by nearest day" treatment as Class,
-        // rather than just grabbing the single soonest shift
-        const events = await fetchUpcomingIcsEvents(cfg.shiftIcsUrl, 20);
-        counts.shift = events.length;
-        shiftPoolAll = events.map(ev => ({ date: new Date(ev.start), name: cleanEventName(ev.summary) }));
-      } catch(e){ errors.push('Shift: ' + e.message); }
-    }
+    updateNextClass();
+    updateDueSoon();
     updateNextShift();
+
+    saveScheduleCache({ classPoolAll, shiftPoolAll, canvasDueItems, counts });
+
     return { errors, counts };
   }
   function initCalSettingsUI(){
@@ -1876,7 +1919,7 @@
       }
       saveCalConfig(cfg);
       setCalStatus('Syncing…');
-      const { errors, counts } = await refreshScheduleCalendars();
+      const { errors, counts } = await refreshScheduleCalendars(true); // explicit sync always forces a real fetch
       if (errors.length){
         setCalStatus(errors.join(' · '), true);
       } else {
@@ -2121,7 +2164,7 @@
     }
     initCalSettingsUI();
     refreshScheduleCalendars();
-    setInterval(refreshScheduleCalendars, 10 * 60 * 1000);
+    setInterval(() => refreshScheduleCalendars(true), 10 * 60 * 1000); // periodic refresh always forces a real fetch
     // schedule-calendars-config was write-only to the cloud before —
     // saved fine, but never actually pulled back down on a different
     // device or a cleared browser, which would make Class/Shift look
@@ -2130,7 +2173,7 @@
     // itself before calling back, so this just needs to re-sync once
     // that's happened.
     SiteSync.checkCloud('schedule-calendars-config', true, (fresher) => {
-      if (fresher) refreshScheduleCalendars();
+      if (fresher) refreshScheduleCalendars(true); // config changed elsewhere — cached data would be for the old config
     });
   })();
 })();
